@@ -60,5 +60,42 @@ tokenization. `parseRawGrammar` raises `RawGrammarError` for malformed input;
 grammar registration and compilation failures raise `MatterError`. Both are
 catchable errors.
 
-The current API returns plain scope tokens only. Theme parsing and
-`tokenizeLine2`-style packed binary metadata tokens are planned for Phase 5.
+The API provides both plain scope tokens and theme-aware binary tokens.
+
+## Themes and binary tokens
+
+Parse and apply a TextMate theme before loading a configured grammar:
+
+```nim
+let rawTheme = parseRawTheme("""
+{"settings": [
+  {"settings": {"foreground": "#D4D4D4", "background": "#1E1E1E"}},
+  {"scope": "comment.block.example", "settings": {
+    "foreground": "#6A9955", "fontStyle": "italic", "fontFamily": "Mono"
+  }}
+]}
+""", "example.tmTheme.json")
+registry.setTheme(rawTheme)
+
+let configuration = GrammarConfiguration(
+  initialLanguageId: 1,
+  tokenTypes: @[
+    TokenTypeOverride(
+      selector: "comment.block.example", tokenType: StandardTokenType.Comment
+    )
+  ]
+)
+let themedGrammar = registry.loadGrammar("source.example", configuration)
+let binary = themedGrammar.tokenizeLine2("/* open")
+
+let startIndex = binary.tokens[0]
+let metadata = binary.tokens[1]
+echo startIndex, " ", getLanguageId(metadata), " ", getTokenType(metadata)
+echo getForeground(metadata), " ", getBackground(metadata), " ", getFontStyle(metadata)
+```
+
+`tokenizeLine2` returns alternating `uint32` start offsets and metadata values:
+`[start0, metadata0, start1, metadata1, ...]`. Start offsets remain UTF-8 byte
+offsets. Its `fonts` sequence contains coalesced font-family, font-size, and
+line-height spans. Use `diffStateStacksRefEq` and `applyStateStackDiff` to
+transport immutable rule-stack changes between tokenization calls.
