@@ -45,6 +45,43 @@ from its archive. The catalog includes archive and source VSIX SHA-256 values;
 [`data/grammars/NOTICES.md`](data/grammars/NOTICES.md) records the complete
 redistribution notice and provenance list.
 
+### Download grammar archives
+
+Every Matter release tag named `v<major>.<minor>.<patch>` publishes every
+packaged grammar ZIP as a GitHub Release asset. Select a specific Matter
+release when reproducibility matters; the `latest` URL intentionally follows
+whichever release GitHub marks latest. The upstream choice is instead the exact
+pinned source VSIX used to build the ZIP, so it is a VSIX—not Matter's stripped
+grammar archive.
+
+```nim
+import std/options
+import matter
+
+let found = findGrammarReleaseAsset("vscode.cpp")
+if found.isSome:
+  let cpp = found.get
+  echo cpp.githubReleaseAssetUrl("v0.2.1")
+  # https://github.com/elcritch/matter/releases/download/v0.2.1/vscode-cpp-1.95.3.zip
+  echo cpp.githubLatestReleaseAssetUrl()
+  # https://github.com/elcritch/matter/releases/latest/download/vscode-cpp-1.95.3.zip
+  echo cpp.upstreamVsixUrl()
+  # https://open-vsx.org/api/vscode/cpp/1.95.3/file/vscode.cpp-1.95.3.vsix
+
+  # Equivalent source selection through one helper:
+  echo cpp.downloadUrl(MatterRelease, "v0.2.1") # Exact Matter ZIP
+  echo cpp.downloadUrl(MatterRelease)           # Latest Matter ZIP
+  echo cpp.downloadUrl(Upstream)                # Pinned upstream VSIX
+```
+
+`grammarReleaseAssets` contains one `GrammarReleaseAsset` per packaged ZIP;
+use `findGrammarReleaseAsset("namespace.name")` to select one. Its generated
+catalog JSON is embedded with `staticRead` and parsed from that embedded data,
+so selecting a URL performs no runtime metadata file or network I/O. The
+release workflow runs the test suite and offline archive verification before it
+creates a `v*` GitHub Release and uploads every
+`data/grammars/*.zip` asset.
+
 To refresh pinned source files after intentionally editing
 `tools/grammar_manifest.json`, use Python 3 and `nph` (network access required).
 The generator invokes `nph` itself so the generated Nim catalog remains formatted:
