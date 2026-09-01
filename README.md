@@ -19,6 +19,25 @@ Run the public API smoke test directly when iterating on the example:
 nim r tests/tmatter.nim
 ```
 
+## Download grammar packages
+
+`grammarpackages` contains pinned Open VSX metadata for the Nim/Nimble, C/C++,
+and Python grammar packages. It only constructs URLs, leaving downloads and
+VSIX extraction to your application:
+
+```nim
+import matter
+
+let grammarPackage = vscodeCppPackage
+let downloadUrl = grammarPackage.vsixDownloadUrl()
+let grammarFile = cppGrammar.grammarPath
+
+echo downloadUrl
+# https://open-vsx.org/api/vscode/cpp/1.95.3/file/vscode.cpp-1.95.3.vsix
+echo grammarFile
+# ./syntaxes/cpp.tmLanguage.json
+```
+
 ## Parse, register, and tokenize
 
 ```nim

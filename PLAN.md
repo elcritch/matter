@@ -204,6 +204,14 @@ modes.
 Exit criterion: the next fixture tranche has explicit provenance, exact expected output, and no
 runtime dependency on the reference checkout.
 
+### Phase 7 — Downloadable grammar catalog
+
+- [x] Publish pinned Open VSX metadata for the Nim/Nimble, C/C++, and Python grammar packages.
+- [x] Provide deterministic metadata and versioned VSIX URL construction without downloading.
+
+Exit criterion: callers can select a known grammar package and form its direct Open VSX URLs
+without a Node.js or network dependency.
+
 ## Verification Matrix
 
 Every completed phase is checked with deterministic local tests. The milestone verification is:

@@ -11,7 +11,9 @@
 ##
 ## Use `parseRawTheme` and `setTheme` to apply TextMate theme settings. The
 ## `metadata` API provides stable field accessors for binary token values.
+## `grammarpackages` exposes pinned Open VSX grammar metadata and direct URLs;
+## callers remain responsible for downloading and extracting VSIX files.
 
-import matter/[engine, metadata, rawgrammar, selectors, theme]
+import matter/[engine, grammarpackages, metadata, rawgrammar, selectors, theme]
 
-export engine, metadata, rawgrammar, selectors, theme
+export engine, grammarpackages, metadata, rawgrammar, selectors, theme
