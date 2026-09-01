@@ -82,7 +82,10 @@ proc searchWithContext(subject: string, regex: Regex, start: int): Match =
   ## Reuse reni's per-thread scratch buffers across all tokenizer probes.
   if matchContext.isNil:
     matchContext = newMatchContext(regex.captureCount)
-  discard searchIntoCtx(matchContext, subject, regex, result, start)
+  try:
+    discard searchIntoCtx(matchContext, subject, regex, result, start)
+  except RegexLimitError as error:
+    raise newException(MatterError, "regex matching limit exceeded: " & error.msg)
 
 proc newRegistry*(): Registry =
   ## Create an empty grammar registry.

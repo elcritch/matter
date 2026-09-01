@@ -289,3 +289,39 @@ suite "matter engine":
     let result = tokenizeLine(tested, "x")
     check result.tokens[0].scopes == @["source.test", "meta.zero"]
     check result.ruleStack.depth == 2
+
+  test "time limits stop a sufficiently large tokenization":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [
+        { "match": "x", "name": "constant.x" }
+      ] }
+    """
+    )
+    let result = tokenizeLine(tested, "x".repeat(100_000), timeLimitMs = 1)
+    check result.stoppedEarly
+    check result.ruleStack.depth == 1
+
+  test "the default time limit is unlimited":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [
+        { "match": "x", "name": "constant.x" }
+      ] }
+    """
+    )
+    let input = "x".repeat(100_000)
+    let result = tokenizeLine(tested, input)
+    check not result.stoppedEarly
+    check result.tokens[^1].endIndex == input.len
+
+  test "reni match limits are Matter errors":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [
+        { "match": "(a+)+b", "name": "bad.redos" }
+      ] }
+    """
+    )
+    expect MatterError:
+      discard tokenizeLine(tested, "a".repeat(30))
