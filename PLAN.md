@@ -6,9 +6,9 @@ Port the scope-tokenization parts of `microsoft/vscode-textmate` to idiomatic Ni
 Matter's public API small, synchronous, and suitable for native applications. The reference
 checkout is `deps/vscode-textmate` at commit `fbe49961ab8077e587fdf5282019655ae69e5f9e`.
 
-Matter uses the MIT-licensed `reni` package for Oniguruma-compatible regular expressions. The
-TypeScript source is a behavioral reference, not a runtime dependency or a source file copied
-into releases.
+Matter uses the MIT-licensed `reni` package for Oniguruma-compatible regular expressions, pinned
+at commit `ae88f24359f7d0742328b7e4f538241d6af00fcc`. The TypeScript source is a behavioral
+reference, not a runtime dependency or a source file copied into releases.
 
 ## Compatibility Target
 
@@ -64,52 +64,52 @@ Implementation helpers stay private unless another module genuinely requires the
 - [x] Clone `microsoft/vscode-textmate` under ignored `deps/` for local reference.
 - [x] Record the exact reference commit in this plan.
 - [x] Add `reni` through Atlas and verify Atlas-generated paths.
-- [ ] Replace the template README/API/test before the first milestone is complete.
+- [x] Replace the template README/API/test before the first milestone is complete.
 
 ### Phase 1 — Raw grammar model and readers
 
-- [ ] Define recursive raw grammar, rule, repository, and capture types.
-- [ ] Parse and validate JSON `.tmLanguage.json` input.
-- [ ] Parse XML plist `.tmLanguage` input without accepting unsafe external entities.
-- [ ] Preserve field-presence distinctions needed for capture fallback behavior.
-- [ ] Add focused tests for valid input and malformed roots, rules, captures, and plist values.
+- [x] Define recursive raw grammar, rule, repository, and capture types.
+- [x] Parse and validate JSON `.tmLanguage.json` input.
+- [x] Parse XML plist `.tmLanguage` input without accepting unsafe external entities.
+- [x] Preserve field-presence distinctions needed for capture fallback behavior.
+- [x] Add focused tests for valid input and malformed roots, rules, captures, and plist values.
 
 Exit criterion: the same semantic `RawGrammar` is produced from equivalent JSON and plist fixtures.
 
 ### Phase 2 — Selectors, registry, and include compilation
 
-- [ ] Parse selector alternatives, exclusions, grouping, and `L:`/`R:` priorities.
-- [ ] Match selectors against ordered scope paths.
-- [ ] Register grammars and declared injection scope names.
-- [ ] Resolve local, self, base, external, and external-repository includes.
-- [ ] Compile recursive rule graphs deterministically without looping on recursive includes.
-- [ ] Translate regex compilation failures into contextual Matter errors.
+- [x] Parse selector alternatives, exclusions, grouping, and `L:`/`R:` priorities.
+- [x] Match selectors against ordered scope paths.
+- [x] Register grammars and declared injection scope names.
+- [x] Resolve local, self, base, external, and external-repository includes.
+- [x] Compile recursive rule graphs deterministically without looping on recursive includes.
+- [x] Translate regex compilation failures into contextual Matter errors.
 
 Exit criterion: representative recursive and cross-grammar repositories compile and selector tests
 match the `vscode-textmate` behavior used by injections.
 
 ### Phase 3 — Incremental tokenizer
 
-- [ ] Implement earliest-match and rule-order precedence.
-- [ ] Implement `match`, `begin`/`end`, and `begin`/`while` state transitions.
-- [ ] Carry immutable state between lines.
-- [ ] Apply capture scopes, dynamic names, end backreferences, and nested retokenization.
-- [ ] Emit coalesced half-open tokens and exclude the synthetic newline.
-- [ ] Detect zero-width non-progress loops and honor an optional time limit.
-- [ ] Apply matching injections with left/right priority.
+- [x] Implement earliest-match and rule-order precedence.
+- [x] Implement `match`, `begin`/`end`, and `begin`/`while` state transitions.
+- [x] Carry immutable state between lines.
+- [x] Apply capture scopes, dynamic names, end backreferences, and nested retokenization.
+- [x] Emit coalesced half-open tokens and exclude the synthetic newline.
+- [x] Detect zero-width non-progress loops and honor an optional time limit.
+- [x] Apply matching injections with left/right priority.
 
 Exit criterion: multiline, nested-capture, backreference, include, while, and injection fixtures
 produce the expected tokens and next-line state.
 
 ### Phase 4 — Public package and conformance suite
 
-- [ ] Replace the template root module with documented re-exports.
-- [ ] Add README setup, parsing, registry, and line-tokenization examples.
-- [ ] Port a curated set of MIT-compatible `vscode-textmate` fixtures into repository-owned tests.
-- [ ] Add regression tests for malformed and adversarial grammars.
-- [ ] Run debug, release, and danger tests and format all touched Nim files with `nph`.
+- [x] Replace the template root module with documented re-exports.
+- [x] Add README setup, parsing, registry, and line-tokenization examples.
+- [x] Port a curated set of MIT-compatible `vscode-textmate` fixtures into repository-owned tests.
+- [x] Add regression tests for malformed and adversarial grammars.
+- [x] Run debug, release, and danger tests and format all touched Nim files with `nph`.
 
-Exit criterion: `nim test` passes in all three modes and the README example compiles.
+Exit criterion: `atlas-run tests` passes in all three modes and the README example compiles.
 
 ### Phase 5 — Theme and binary-token compatibility
 
@@ -128,9 +128,9 @@ Every completed phase is checked with deterministic local tests. The milestone v
 
 ```sh
 atlas install
-nim test
-nim c -d:release -r tests/tmatter.nim
-nim c -d:danger -r tests/tmatter.nim
+atlas-run tests
+atlas-run tests -- -d:release
+atlas-run tests -- -d:danger
 ```
 
 No test may fetch grammars or access the network. Reference fixtures under `deps/` are never needed
