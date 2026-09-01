@@ -226,6 +226,21 @@ without a Node.js or network dependency.
 Exit criterion: a clean checkout can verify all bundled archives offline, while an intentional
 manifest update can reproducibly rebuild the same archives after pinned source downloads validate.
 
+### Phase 9 — GitHub release grammar assets
+
+- [ ] Add a metadata-only Nim module that embeds the generated grammar catalog with `staticRead`
+  and exposes every packaged ZIP as a typed release asset.
+- [ ] Provide deterministic helpers for exact-tag and latest GitHub release URLs, plus each
+  package's pinned upstream VSIX URL.
+- [ ] Add offline tests for catalog coverage, checksums, URL escaping, and public root-module
+  exports.
+- [ ] Add a Linux tag workflow that verifies and tests Matter, creates the GitHub release, and
+  uploads every `data/grammars/*.zip` asset.
+- [ ] Document the release-tag convention and metadata-only download selection API.
+
+Exit criterion: pushing a Matter release tag publishes all verified grammar ZIPs, and callers can
+choose a Matter release archive or its pinned upstream source without performing metadata I/O.
+
 ## Verification Matrix
 
 Every completed phase is checked with deterministic local tests. The milestone verification is:
