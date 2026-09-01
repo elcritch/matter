@@ -408,27 +408,26 @@ proc compilePatterns(
           pattern.include
         else:
           pattern.include[0 ..< split]
-      if not registry.grammars.hasKey(scope):
-        raise
-          newException(MatterError, "missing grammar for include " & pattern.include)
-      let external = registry.grammars[scope]
-      let externalRoot =
-        RawRule(patterns: external.patterns, repository: external.repository)
-      var externalRepo =
-        mergedRepository(external.repository, initOrderedTable[string, RawRule]())
-      externalRepo["$self"] = externalRoot
-      externalRepo["$base"] = base
-      if split < 0:
-        result.add(
-          compileRule(external, externalRepo, base, externalRoot, cache, registry)
-        )
-      else:
-        let name = pattern.include[split + 1 ..^ 1]
-        if not externalRepo.hasKey(name):
-          raise newException(MatterError, "missing repository rule " & pattern.include)
-        result.add(
-          compileRule(external, externalRepo, base, externalRepo[name], cache, registry)
-        )
+      if registry.grammars.hasKey(scope):
+        let external = registry.grammars[scope]
+        let externalRoot =
+          RawRule(patterns: external.patterns, repository: external.repository)
+        var externalRepo =
+          mergedRepository(external.repository, initOrderedTable[string, RawRule]())
+        externalRepo["$self"] = externalRoot
+        externalRepo["$base"] = base
+        if split < 0:
+          result.add(
+            compileRule(external, externalRepo, base, externalRoot, cache, registry)
+          )
+        else:
+          let name = pattern.include[split + 1 ..^ 1]
+          if externalRepo.hasKey(name):
+            result.add(
+              compileRule(
+                external, externalRepo, base, externalRepo[name], cache, registry
+              )
+            )
 
 proc compileCaptures(
     grammar: RawGrammar,

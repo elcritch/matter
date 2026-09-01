@@ -194,6 +194,47 @@ suite "vscode-textmate compatibility":
     let result = tokenizeLine(registry.loadGrammar("source.compat"), "h")
     doAssert result.tokens[0].scopes == @["source.compat", "host.match"]
 
+  test "missing external grammar includes are ignored":
+    let tested = compileGrammar(
+      """
+      { "scopeName": "source.compat", "patterns": [
+        { "include": "source.missing" },
+        { "match": "x", "name": "constant.present" }
+      ] }
+    """
+    )
+    let result = tokenizeLine(tested, "x")
+    doAssert result.tokens[0].scopes == @["source.compat", "constant.present"]
+
+  test "missing external repository rules are ignored":
+    let registry = newRegistry()
+    registry.addGrammar(
+      parseRawGrammar(
+        """
+        { "scopeName": "source.external", "patterns": [] }
+      """,
+        "external.tmLanguage.json",
+      )
+    )
+    registry.addGrammar(
+      parseRawGrammar(
+        """
+        { "scopeName": "source.compat", "patterns": [
+          { "include": "source.external#missing" },
+          { "match": "x", "name": "constant.present" }
+        ] }
+      """,
+        "compat.tmLanguage.json",
+      )
+    )
+    let result = tokenizeLine(registry.loadGrammar("source.compat"), "x")
+    doAssert result.tokens[0].scopes == @["source.compat", "constant.present"]
+
+  test "a requested root scope must still be registered":
+    let registry = newRegistry()
+    doAssertRaises MatterError:
+      discard registry.loadGrammar("source.missing")
+
   test "an injection selector matches the active nested scope path":
     let tested = compileGrammar(
       """
