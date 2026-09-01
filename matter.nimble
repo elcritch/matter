@@ -1,6 +1,6 @@
 version       = "0.1.0"
-author        = "Your Name"
-description   = "A Nim package."
+author        = "Jaremy Creechley"
+description   = "TextMate grammar engine"
 license       = "MIT"
 srcDir        = "src"
 
