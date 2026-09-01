@@ -79,17 +79,19 @@ suite "raw grammar parsing":
         "{\"scopeName\": \"source.bad\", \"patterns\": [true]}", "bad.json"
       )
 
-  test "invalid capture maps are rejected":
+  test "invalid capture map shapes are rejected":
     expect RawGrammarError:
       discard parseRawGrammar(
         "{\"scopeName\": \"source.bad\", \"patterns\": [{\"captures\": []}]}",
         "bad.json",
       )
-    expect RawGrammarError:
-      discard parseRawGrammar(
-        "{\"scopeName\": \"source.bad\", \"patterns\": [{\"captures\": {\"one\": {}}}]}",
-        "bad.json",
-      )
+  test "nonnumeric capture keys are ignored like vscode-textmate":
+    let raw = parseRawGrammar(
+      "{\"scopeName\": \"source.compat\", \"patterns\": [{\"captures\": {\"one\": {}, \"1\": {\"name\": \"capture\"}}}]}",
+      "compat.json",
+    )
+    check raw.patterns[0].captures.len == 1
+    check raw.patterns[0].captures.hasKey(1)
 
   test "invalid plist values and entity declarations are rejected":
     expect RawGrammarError:

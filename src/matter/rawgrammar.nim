@@ -60,25 +60,27 @@ proc optionalBool(node: JsonNode, key, context: string): bool =
     else:
       fail(context & "." & key & " must be a boolean")
 
-proc parseCaptureNumber(key, context: string): int =
-  if key.len == 0:
-    fail(context & " has an empty capture number")
-
+func parseCaptureNumber(key: string): int =
+  ## TextMate ignores non-numeric capture-map keys.  Built-in VS Code grammars
+  ## contain a few of these, and the JavaScript reference loader likewise only
+  ## consumes numeric capture indexes.
   for ch in key:
     if ch < '0' or ch > '9':
-      fail(context & " has invalid capture number '" & key & "'")
+      return -1
 
   try:
     result = parseInt(key)
   except ValueError:
-    fail(context & " has invalid capture number '" & key & "'")
+    result = -1
 
 proc parseRule(node: JsonNode, context: string): RawRule
 
 proc parseCaptures(node: JsonNode, context: string): RawCaptures =
   requireKind(node, JObject, context)
   for key, value in node.pairs:
-    result[parseCaptureNumber(key, context)] = parseRule(value, context & "." & key)
+    let captureNumber = parseCaptureNumber(key)
+    if captureNumber >= 0:
+      result[captureNumber] = parseRule(value, context & "." & key)
 
 proc parsePatterns(node: JsonNode, context: string): seq[RawRule] =
   requireKind(node, JArray, context)
