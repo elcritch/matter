@@ -1,10 +1,10 @@
 ## Compilation and incremental tokenization for TextMate grammars.
 
-import std/[algorithm, monotimes, sets, strutils, tables, times]
+import std/[algorithm, monotimes, options, sets, strutils, tables, times]
 
 import pkg/reni
 
-import ./[rawgrammar, selectors]
+import ./[metadata, rawgrammar, selectors, theme]
 
 type
   MatterError* = object of ValueError ## A grammar could not be compiled or tokenized.
@@ -33,14 +33,55 @@ type
     selector: ScopeSelector
     rule: CompiledRule
 
+  EmbeddedLanguage* = object
+    ## An ordered mapping from a scope-name prefix to a binary language ID.
+    scopeName*: string
+    languageId*: uint32
+
+  TokenTypeOverride* = object
+    ## An ordered selector override for the standard token-type metadata bits.
+    selector*: string
+    tokenType*: StandardTokenType
+
+  GrammarConfiguration* = object
+    ## Optional binary-token metadata configuration for a loaded grammar.
+    ##
+    ## Mapping and override sequences are intentionally ordered: later
+    ## token-type overrides win, while the longest embedded-language scope
+    ## prefix wins (retaining sequence order for an equal-length tie).
+    initialLanguageId*: uint32
+    embeddedLanguages*: seq[EmbeddedLanguage]
+    tokenTypes*: seq[TokenTypeOverride]
+    balancedBracketSelectors*: seq[string]
+    unbalancedBracketSelectors*: seq[string]
+
+  CompiledTokenTypeOverride = object
+    selector: ScopeSelector
+    tokenType: StandardTokenType
+
+  CompiledGrammarConfiguration = object
+    initialLanguageId: uint32
+    embeddedLanguages: seq[EmbeddedLanguage]
+    tokenTypes: seq[CompiledTokenTypeOverride]
+    balancedBracketSelectors, unbalancedBracketSelectors: seq[ScopeSelector]
+    balancedBracketAll: bool
+
+  FontInfo* = object ## A UTF-8 byte range with the resolved non-color font settings.
+    startIndex*, endIndex*: int
+    fontFamily*: string
+    fontSizeMultiplier*, lineHeightMultiplier*: float
+
   Registry* = ref object
     grammars: OrderedTable[string, RawGrammar]
     injectionScopes: Table[string, seq[string]]
+    theme: Theme
 
   Grammar* = ref object
     scopeName: string
     root: CompiledRule
     injections: seq[Injection]
+    registry: Registry
+    configuration: CompiledGrammarConfiguration
 
   StateStack* = ref object
     ## An immutable active begin/end or begin/while nesting frame.
@@ -79,6 +120,14 @@ type
     tokens*: seq[Token]
     ruleStack*: StateStack
     stoppedEarly*: bool
+    fonts*: seq[FontInfo]
+
+  TokenizeLineResult2* = object
+    ## Binary TextMate tokens as alternating UTF-8 start offsets and metadata.
+    tokens*: seq[uint32]
+    ruleStack*: StateStack
+    stoppedEarly*: bool
+    fonts*: seq[FontInfo]
 
   CandidateKind = enum
     ckRule
@@ -102,11 +151,46 @@ proc searchWithContext(subject: string, regex: Regex, start: int): Match =
     raise newException(MatterError, "regex matching limit exceeded: " & error.msg)
 
 proc newRegistry*(): Registry =
-  ## Create an empty grammar registry.
+  ## Create an empty grammar registry with the default TextMate theme.
   Registry(
     grammars: initOrderedTable[string, RawGrammar](),
     injectionScopes: initTable[string, seq[string]](),
+    theme: newTheme(RawTheme()),
   )
+
+proc setTheme*(registry: Registry, rawTheme: RawTheme) =
+  ## Replace the registry theme with a newly resolved raw TextMate theme.
+  registry.theme = newTheme(rawTheme)
+
+proc setTheme*(registry: Registry, newTheme: Theme) =
+  ## Replace the registry theme with an already resolved theme.
+  if newTheme.isNil:
+    raise newException(MatterError, "theme must not be nil")
+  registry.theme = newTheme
+
+proc colorMap*(registry: Registry): seq[string] =
+  ## Return a defensive copy of the registry theme's color map.
+  registry.theme.colorMap()
+
+proc compileConfiguration(
+    configuration: GrammarConfiguration
+): CompiledGrammarConfiguration =
+  result.initialLanguageId = configuration.initialLanguageId
+  result.embeddedLanguages = configuration.embeddedLanguages
+  for override in configuration.tokenTypes:
+    for selector in parseScopeSelectors(override.selector):
+      result.tokenTypes.add(
+        CompiledTokenTypeOverride(selector: selector, tokenType: override.tokenType)
+      )
+  for source in configuration.balancedBracketSelectors:
+    if source.strip() == "*":
+      result.balancedBracketAll = true
+    else:
+      for selector in parseScopeSelectors(source):
+        result.balancedBracketSelectors.add(selector)
+  for source in configuration.unbalancedBracketSelectors:
+    for selector in parseScopeSelectors(source):
+      result.unbalancedBracketSelectors.add(selector)
 
 proc addGrammar*(registry: Registry, grammar: RawGrammar) =
   ## Add or replace a raw grammar, registering injection grammars by selector scope.
@@ -426,8 +510,10 @@ proc compileRule(
     result.patterns =
       compilePatterns(grammar, localRepository, base, raw.patterns, cache, registry)
 
-proc loadGrammar*(registry: Registry, scopeName: string): Grammar =
-  ## Compile a registered grammar by scope name.
+proc loadGrammar*(
+    registry: Registry, scopeName: string, configuration: GrammarConfiguration
+): Grammar =
+  ## Compile a registered grammar by scope name and metadata configuration.
   if not registry.grammars.hasKey(scopeName):
     raise newException(MatterError, "no grammar registered for " & scopeName)
   let raw = registry.grammars[scopeName]
@@ -439,6 +525,8 @@ proc loadGrammar*(registry: Registry, scopeName: string): Grammar =
   result = Grammar(
     scopeName: scopeName,
     root: compileRule(raw, repository, rootRaw, rootRaw, cache, registry),
+    registry: registry,
+    configuration: compileConfiguration(configuration),
   )
   var injectionNames = registry.injectionScopes.getOrDefault(scopeName)
   for name in registry.grammars.keys:
@@ -477,6 +565,10 @@ proc loadGrammar*(registry: Registry, scopeName: string): Grammar =
     proc(a, b: Injection): int =
       cmp(ord(a.selector.priority), ord(b.selector.priority))
   )
+
+proc loadGrammar*(registry: Registry, scopeName: string): Grammar =
+  ## Compile a registered grammar using the default binary-token configuration.
+  registry.loadGrammar(scopeName, GrammarConfiguration())
 
 proc newState(
     rule: CompiledRule,
@@ -597,6 +689,10 @@ proc applyStateStackDiff*(stack: StateStack, diff: StackDiff): StateStack =
       beginRuleCapturedEol: frame.beginRuleCapturedEol,
     )
 
+proc tokenizeLine*(
+  grammar: Grammar, line: string, previousState: StateStack = nil, timeLimitMs: int = 0
+): TokenizeLineResult
+
 proc addToken(
     tokens: var seq[Token], start, stop: int, scopes: seq[string], visibleLength: int
 ) =
@@ -611,6 +707,250 @@ proc addToken(
     tokens.add(
       Token(startIndex: boundedStart, endIndex: boundedStop, scopes: copyScopes(scopes))
     )
+
+proc scopeMatches(scope, prefix: string): bool {.inline.} =
+  scope == prefix or
+    (scope.len > prefix.len and scope.startsWith(prefix) and scope[prefix.len] == '.')
+
+proc firstStandardTokenType(scope: string): OptionalStandardTokenType =
+  ## Match vscode-textmate's first word-boundary semantic-type match.
+  const names = [
+    ("comment", OptionalStandardTokenType.Comment),
+    ("string", OptionalStandardTokenType.String),
+    ("regex", OptionalStandardTokenType.RegEx),
+    ("meta.embedded", OptionalStandardTokenType.Other),
+  ]
+  result = OptionalStandardTokenType.NotSet
+  var first = high(int)
+  for (name, tokenType) in names:
+    var offset = scope.find(name)
+    while offset >= 0:
+      let beforeIsWord =
+        offset > 0 and (scope[offset - 1].isAlphaNumeric or scope[offset - 1] == '_')
+      let after = offset + name.len
+      let afterIsWord =
+        after < scope.len and (scope[after].isAlphaNumeric or scope[after] == '_')
+      if not beforeIsWord and not afterIsWord and offset < first:
+        first = offset
+        result = tokenType
+        break
+      offset = scope.find(name, offset + 1)
+
+proc applyStyle(base: var StyleAttributes, update: StyleAttributes) =
+  if update.fontStyle != fontStyleNotSet:
+    base.fontStyle = update.fontStyle
+  if update.foregroundId != 0:
+    base.foregroundId = update.foregroundId
+  if update.backgroundId != 0:
+    base.backgroundId = update.backgroundId
+  if update.fontFamily.len > 0:
+    base.fontFamily = update.fontFamily
+  if update.fontSize != 0:
+    base.fontSize = update.fontSize
+  if update.lineHeight != 0:
+    base.lineHeight = update.lineHeight
+
+proc attributesForScopes(
+    grammar: Grammar, scopes: openArray[string]
+): tuple[metadata: EncodedTokenAttributes, style: StyleAttributes] =
+  let theme = grammar.registry.theme
+  result.style = theme.defaults()
+  result.metadata = set(
+    0'u32,
+    grammar.configuration.initialLanguageId,
+    OptionalStandardTokenType.NotSet,
+    none(bool),
+    result.style.fontStyle,
+    uint32(result.style.foregroundId),
+    uint32(result.style.backgroundId),
+  )
+  for index, scope in scopes:
+    var path = newSeq[string](index + 1)
+    for pathIndex in 0 .. index:
+      path[pathIndex] = scopes[pathIndex]
+    let themed = theme.match(path)
+    result.style.applyStyle(themed)
+    result.metadata = set(
+      result.metadata,
+      0,
+      firstStandardTokenType(scope),
+      none(bool),
+      themed.fontStyle,
+      uint32(themed.foregroundId),
+      uint32(themed.backgroundId),
+    )
+    var longestEmbeddedScope = -1
+    var embeddedLanguageId = 0'u32
+    for embedded in grammar.configuration.embeddedLanguages:
+      if scopeMatches(scope, embedded.scopeName) and
+          embedded.scopeName.len > longestEmbeddedScope:
+        longestEmbeddedScope = embedded.scopeName.len
+        embeddedLanguageId = embedded.languageId
+    if embeddedLanguageId != 0:
+      result.metadata = set(
+        result.metadata,
+        embeddedLanguageId,
+        OptionalStandardTokenType.NotSet,
+        none(bool),
+        fontStyleNotSet,
+        0,
+        0,
+      )
+  for override in grammar.configuration.tokenTypes:
+    if override.selector.matches(scopes):
+      result.metadata = set(
+        result.metadata,
+        0,
+        override.tokenType.toOptionalTokenType(),
+        none(bool),
+        fontStyleNotSet,
+        0,
+        0,
+      )
+  var balanced: Option[bool]
+  for selector in grammar.configuration.unbalancedBracketSelectors:
+    if selector.matches(scopes):
+      balanced = some(false)
+      break
+  if balanced.isNone:
+    if grammar.configuration.balancedBracketAll:
+      balanced = some(true)
+    else:
+      for selector in grammar.configuration.balancedBracketSelectors:
+        if selector.matches(scopes):
+          balanced = some(true)
+          break
+  result.metadata = set(
+    result.metadata, 0, OptionalStandardTokenType.NotSet, balanced, fontStyleNotSet, 0,
+    0,
+  )
+
+proc sameFontOptions(a, b: FontInfo): bool {.inline.} =
+  a.fontFamily == b.fontFamily and a.fontSizeMultiplier == b.fontSizeMultiplier and
+    a.lineHeightMultiplier == b.lineHeightMultiplier
+
+proc addFont(fonts: var seq[FontInfo], start, stop: int, style: StyleAttributes) =
+  if stop <= start or
+      (style.fontFamily.len == 0 and style.fontSize == 0 and style.lineHeight == 0):
+    return
+  let font = FontInfo(
+    startIndex: start,
+    endIndex: stop,
+    fontFamily: style.fontFamily,
+    fontSizeMultiplier: style.fontSize,
+    lineHeightMultiplier: style.lineHeight,
+  )
+  if fonts.len > 0 and fonts[^1].endIndex == start and fonts[^1].sameFontOptions(font):
+    fonts[^1].endIndex = stop
+  else:
+    fonts.add(font)
+
+proc fontsForTokens(grammar: Grammar, tokens: openArray[Token]): seq[FontInfo] =
+  for token in tokens:
+    let attributes = grammar.attributesForScopes(token.scopes)
+    result.addFont(token.startIndex, token.endIndex, attributes.style)
+
+proc plainResult(
+    grammar: Grammar, tokens: seq[Token], ruleStack: StateStack, stoppedEarly = false
+): TokenizeLineResult =
+  TokenizeLineResult(
+    tokens: tokens,
+    ruleStack: ruleStack,
+    stoppedEarly: stoppedEarly,
+    fonts: grammar.fontsForTokens(tokens),
+  )
+
+proc containsRtl(line: string): bool =
+  ## The reference deliberately disables metadata coalescing for any RTL line.
+  var index = 0
+  while index < line.len:
+    let byte = uint8(line[index])
+    var codepoint: int
+    var width = 1
+    if byte < 0x80:
+      codepoint = int(byte)
+    elif byte shr 5 == 0x6 and index + 1 < line.len:
+      codepoint = (int(byte and 0x1f) shl 6) or (int(uint8(line[index + 1])) and 0x3f)
+      width = 2
+    elif byte shr 4 == 0xe and index + 2 < line.len:
+      codepoint =
+        (int(byte and 0x0f) shl 12) or ((int(uint8(line[index + 1])) and 0x3f) shl 6) or
+        (int(uint8(line[index + 2])) and 0x3f)
+      width = 3
+    elif byte shr 3 == 0x1e and index + 3 < line.len:
+      codepoint =
+        (int(byte and 0x07) shl 18) or ((int(uint8(line[index + 1])) and 0x3f) shl 12) or
+        ((int(uint8(line[index + 2])) and 0x3f) shl 6) or
+        (int(uint8(line[index + 3])) and 0x3f)
+      width = 4
+    else:
+      codepoint = int(byte)
+    if codepoint == 0x05be or codepoint == 0x05c0 or codepoint == 0x05c3 or
+        codepoint == 0x05c6 or codepoint == 0x0608 or codepoint == 0x060b or
+        codepoint == 0x060d or codepoint == 0x06e5 or codepoint == 0x06e6 or
+        codepoint == 0x06ee or codepoint == 0x06ef or codepoint == 0x07b1 or
+        codepoint == 0x07f4 or codepoint == 0x07f5 or codepoint == 0x07fa or
+        codepoint == 0x081a or codepoint == 0x0824 or codepoint == 0x0828 or
+        codepoint == 0x085e or codepoint == 0x088e or codepoint == 0x200f or
+        codepoint == 0xfb1d or (codepoint >= 0x05d0 and codepoint <= 0x05f4) or
+        (codepoint >= 0x061b and codepoint <= 0x064a) or
+        (codepoint >= 0x066d and codepoint <= 0x066f) or
+        (codepoint >= 0x0671 and codepoint <= 0x06d5) or
+        (codepoint >= 0x06fa and codepoint <= 0x0710) or
+        (codepoint >= 0x0712 and codepoint <= 0x072f) or
+        (codepoint >= 0x074d and codepoint <= 0x07a5) or codepoint == 0x07ea or
+        (codepoint >= 0x07fe and codepoint <= 0x0815) or
+        (codepoint >= 0x0830 and codepoint <= 0x0858) or
+        (codepoint >= 0x085e and codepoint <= 0x088e) or
+        (codepoint >= 0x08a0 and codepoint <= 0x08c9) or
+        (codepoint >= 0xfb1f and codepoint <= 0xfb28) or
+        (codepoint >= 0xfb2a and codepoint <= 0xfd3d) or
+        (codepoint >= 0xfd50 and codepoint <= 0xfdc7) or
+        (codepoint >= 0xfdf0 and codepoint <= 0xfdfc) or
+        (codepoint >= 0xfe70 and codepoint <= 0xfefc) or
+        (codepoint >= 0x10800 and codepoint <= 0x1091b) or
+        (codepoint >= 0x10920 and codepoint <= 0x10a00) or
+        (codepoint >= 0x10a10 and codepoint <= 0x10a35) or
+        (codepoint >= 0x10a40 and codepoint <= 0x10ae4) or
+        (codepoint >= 0x10aeb and codepoint <= 0x10b35) or
+        (codepoint >= 0x10b40 and codepoint <= 0x10bff) or
+        (codepoint >= 0x10c00 and codepoint <= 0x10d23) or
+        (codepoint >= 0x10e80 and codepoint <= 0x10ea9) or
+        (codepoint >= 0x10ead and codepoint <= 0x10f45) or
+        (codepoint >= 0x10f51 and codepoint <= 0x10f81) or
+        (codepoint >= 0x10f86 and codepoint <= 0x10ff6) or
+        (codepoint >= 0x1e800 and codepoint <= 0x1e8cf) or
+        (codepoint >= 0x1e900 and codepoint <= 0x1e943) or
+        (codepoint >= 0x1e94b and codepoint <= 0x1ebff) or
+        (codepoint >= 0x1ec00 and codepoint <= 0x1eebb):
+      return true
+    index += width
+
+proc tokenizeLine2*(
+    grammar: Grammar,
+    line: string,
+    previousState: StateStack = nil,
+    timeLimitMs: int = 0,
+): TokenizeLineResult2 =
+  ## Tokenize one line to alternating UTF-8 byte offsets and packed metadata.
+  let plain = grammar.tokenizeLine(line, previousState, timeLimitMs)
+  let mergeMetadata = not line.containsRtl()
+  for token in plain.tokens:
+    let metadata = grammar.attributesForScopes(token.scopes).metadata
+    if mergeMetadata and result.tokens.len >= 2 and result.tokens[^1] == metadata:
+      continue
+    result.tokens.add(uint32(token.startIndex))
+    result.tokens.add(metadata)
+  if result.tokens.len == 0:
+    let scopes =
+      if plain.ruleStack.isNil:
+        @[grammar.scopeName]
+      else:
+        plain.ruleStack.scopes
+    result.tokens = @[0'u32, grammar.attributesForScopes(scopes).metadata]
+  result.ruleStack = plain.ruleStack
+  result.stoppedEarly = plain.stoppedEarly
+  result.fonts = plain.fonts
 
 proc resolvedRegex(source, line: string, matched: Match, context: string): Regex =
   regexFor(substituteCaptures(source, line, matched), context)
@@ -957,7 +1297,7 @@ proc tokenizeLine*(
   while position <= lineLength:
     if timeLimitMs > 0 and (getMonoTime() - started).inMilliseconds > timeLimitMs:
       addToken(tokens, position, lineLength, scopes, lineLength)
-      return TokenizeLineResult(tokens: tokens, ruleStack: stack, stoppedEarly: true)
+      return plainResult(grammar, tokens, stack, true)
     let anchorPos = stack.anchorPos
     var candidate =
       if stack.isRoot:
@@ -1071,4 +1411,4 @@ proc tokenizeLine*(
           zeroWidthAt = if span.b == position: position else: -1
       if span.b > position:
         position = span.b
-  TokenizeLineResult(tokens: tokens, ruleStack: nextLineState(stack))
+  plainResult(grammar, tokens, nextLineState(stack))
