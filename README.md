@@ -19,23 +19,45 @@ Run the public API smoke test directly when iterating on the example:
 nim r tests/tmatter.nim
 ```
 
-## Download grammar packages
+## Bundled grammar packages
 
-`grammarpackages` contains pinned Open VSX metadata for the Nim/Nimble, C/C++,
-and Python grammar packages. It only constructs URLs, leaving downloads and
-VSIX extraction to your application:
+`grammarpackages` contains pinned source, license, archive, and direct-download
+metadata for all 35 syntax modes in Moe at commit
+`0dcc33b87cf672e727c54d39b48bd81cc68e6c2c`. The stripped, ordinary ZIP
+archives live under `data/grammars/`; they retain only allowlisted TextMate
+grammar files plus the source package manifest, license, and provenance. They
+never need `npx` to download or use.
 
 ```nim
 import matter
 
 let grammarPackage = vscodeCppPackage
 let downloadUrl = grammarPackage.vsixDownloadUrl()
-let grammarFile = cppGrammar.grammarPath
-
 echo downloadUrl
 # https://open-vsx.org/api/vscode/cpp/1.95.3/file/vscode.cpp-1.95.3.vsix
-echo grammarFile
-# ./syntaxes/cpp.tmLanguage.json
+for grammar in importedGrammars("cpp"):
+  echo grammar.dataArchivePath, ":", grammar.archiveMember
+# data/grammars/vscode-cpp-1.95.3.zip:grammar/syntaxes/cpp.tmLanguage.json
+```
+
+`importedGrammars("cpp")` yields the primary grammar and the support grammars
+from its archive. The catalog includes archive and source VSIX SHA-256 values;
+[`data/grammars/NOTICES.md`](data/grammars/NOTICES.md) records the complete
+redistribution notice and provenance list.
+
+To refresh pinned source files after intentionally editing
+`tools/grammar_manifest.json`, use Python 3 and `nph` (network access required).
+The generator invokes `nph` itself so the generated Nim catalog remains formatted:
+
+```sh
+nim regenerateGrammars
+```
+
+The task rejects a downloaded VSIX whose pinned SHA-256 differs. Verify a clean
+checkout without network access with:
+
+```sh
+nim verifyGrammars
 ```
 
 ## Parse, register, and tokenize

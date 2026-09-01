@@ -1,0 +1,1577 @@
+{
+  "archiveFormat": "matter-textmate-grammar-archive-v1",
+  "moeMappings": [
+    [
+      "astro",
+      "source.astro"
+    ],
+    [
+      "c",
+      "source.c"
+    ],
+    [
+      "commitEditMsg",
+      "text.git-commit"
+    ],
+    [
+      "cpp",
+      "source.cpp"
+    ],
+    [
+      "csharp",
+      "source.cs"
+    ],
+    [
+      "diff",
+      "source.diff"
+    ],
+    [
+      "dockerfile",
+      "source.dockerfile"
+    ],
+    [
+      "fish",
+      "source.fish"
+    ],
+    [
+      "gitRebaseTodo",
+      "text.git-rebase"
+    ],
+    [
+      "gitignore",
+      "source.ignore"
+    ],
+    [
+      "go",
+      "source.go"
+    ],
+    [
+      "haskell",
+      "source.haskell"
+    ],
+    [
+      "html",
+      "text.html.derivative"
+    ],
+    [
+      "hyprland",
+      "source.hyprlang"
+    ],
+    [
+      "java",
+      "source.java"
+    ],
+    [
+      "javascript",
+      "source.js"
+    ],
+    [
+      "jsx",
+      "source.js.jsx"
+    ],
+    [
+      "latex",
+      "text.tex.latex"
+    ],
+    [
+      "lisp",
+      "source.lisp"
+    ],
+    [
+      "log",
+      "text.log"
+    ],
+    [
+      "lua",
+      "source.lua"
+    ],
+    [
+      "markdown",
+      "text.html.markdown"
+    ],
+    [
+      "nim",
+      "source.nim"
+    ],
+    [
+      "python",
+      "source.python"
+    ],
+    [
+      "rust",
+      "source.rust"
+    ],
+    [
+      "shell",
+      "source.shell"
+    ],
+    [
+      "tcl",
+      "source.tcl"
+    ],
+    [
+      "toml",
+      "source.toml"
+    ],
+    [
+      "yaml",
+      "source.yaml"
+    ],
+    [
+      "json",
+      "source.json"
+    ],
+    [
+      "jsonc",
+      "source.json.comments"
+    ],
+    [
+      "typescript",
+      "source.ts"
+    ],
+    [
+      "tsx",
+      "source.tsx"
+    ],
+    [
+      "xml",
+      "text.xml"
+    ],
+    [
+      "zsh",
+      "source.shell"
+    ]
+  ],
+  "moeSourceCommit": "0dcc33b87cf672e727c54d39b48bd81cc68e6c2c",
+  "packages": [
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/c.tmLanguage.json",
+        "grammar/syntaxes/cpp.embedded.macro.tmLanguage.json",
+        "grammar/syntaxes/cpp.tmLanguage.json",
+        "grammar/syntaxes/platform.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "88110db50f008674e777817bfeb3ac361c7fdeb824eb0fbf580577fcb20e373a",
+      "constName": "vscodeCppPackage",
+      "dataArchivePath": "data/grammars/vscode-cpp-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/cpp/1.95.3/file/vscode.cpp-1.95.3.vsix",
+      "grammars": [
+        [
+          "cGrammar",
+          "C",
+          "c",
+          "source.c",
+          "./syntaxes/c.tmLanguage.json",
+          true
+        ],
+        [
+          "cppEmbeddedMacroGrammar",
+          "C++ Embedded Macro Support",
+          "cpp",
+          "source.cpp.embedded.macro",
+          "./syntaxes/cpp.embedded.macro.tmLanguage.json",
+          false
+        ],
+        [
+          "cppGrammar",
+          "C++",
+          "cpp",
+          "source.cpp",
+          "./syntaxes/cpp.tmLanguage.json",
+          true
+        ],
+        [
+          "cPlatformGrammar",
+          "C Platform Support",
+          "",
+          "source.c.platform",
+          "./syntaxes/platform.tmLanguage.json",
+          false
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "cpp",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/cpp/1.95.3/file/vscode.cpp-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.cpp",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/cpp",
+        "sourceVsixMember": {
+          "grammar/syntaxes/c.tmLanguage.json": "extension/syntaxes/c.tmLanguage.json",
+          "grammar/syntaxes/cpp.embedded.macro.tmLanguage.json": "extension/syntaxes/cpp.embedded.macro.tmLanguage.json",
+          "grammar/syntaxes/cpp.tmLanguage.json": "extension/syntaxes/cpp.tmLanguage.json",
+          "grammar/syntaxes/platform.tmLanguage.json": "extension/syntaxes/platform.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/cpp",
+      "sourceFile": "vscode.cpp.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/csharp.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "b97eae38e85e9a0032e763a90775b59381351901b9ab21878626fc3070a68f35",
+      "constName": "vscodeCsharpPackage",
+      "dataArchivePath": "data/grammars/vscode-csharp-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/csharp/1.95.3/file/vscode.csharp-1.95.3.vsix",
+      "grammars": [
+        [
+          "csharpGrammar",
+          "C#",
+          "csharp",
+          "source.cs",
+          "./syntaxes/csharp.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "csharp",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/csharp/1.95.3/file/vscode.csharp-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.csharp",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/csharp",
+        "sourceVsixMember": {
+          "grammar/syntaxes/csharp.tmLanguage.json": "extension/syntaxes/csharp.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/csharp",
+      "sourceFile": "vscode.csharp.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/diff.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "b601a7603d77a27130f27a95b06df51c58698ad3105ba3606d029cba49dd87f3",
+      "constName": "vscodeDiffPackage",
+      "dataArchivePath": "data/grammars/vscode-diff-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/diff/1.95.3/file/vscode.diff-1.95.3.vsix",
+      "grammars": [
+        [
+          "diffGrammar",
+          "Diff",
+          "diff",
+          "source.diff",
+          "./syntaxes/diff.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "diff",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/diff/1.95.3/file/vscode.diff-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.diff",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/diff",
+        "sourceVsixMember": {
+          "grammar/syntaxes/diff.tmLanguage.json": "extension/syntaxes/diff.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/diff",
+      "sourceFile": "vscode.diff.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/docker.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "480e0eeb22da9d879f4d507bf9432ed8f4f32501baee15851311429ac6ccf415",
+      "constName": "vscodeDockerPackage",
+      "dataArchivePath": "data/grammars/vscode-docker-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/docker/1.95.3/file/vscode.docker-1.95.3.vsix",
+      "grammars": [
+        [
+          "dockerGrammar",
+          "Dockerfile",
+          "dockerfile",
+          "source.dockerfile",
+          "./syntaxes/docker.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "docker",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/docker/1.95.3/file/vscode.docker-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.docker",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/docker",
+        "sourceVsixMember": {
+          "grammar/syntaxes/docker.tmLanguage.json": "extension/syntaxes/docker.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/docker",
+      "sourceFile": "vscode.docker.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/git-commit.tmLanguage.json",
+        "grammar/syntaxes/git-rebase.tmLanguage.json",
+        "grammar/syntaxes/ignore.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "6e29a5e7be7449c63e07794f82216f9307ef690b68ca20779af8ea819f14403b",
+      "constName": "vscodeGitBasePackage",
+      "dataArchivePath": "data/grammars/vscode-git-base-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/git-base/1.95.3/file/vscode.git-base-1.95.3.vsix",
+      "grammars": [
+        [
+          "gitCommitGrammar",
+          "Git commit message",
+          "git-commit",
+          "text.git-commit",
+          "./syntaxes/git-commit.tmLanguage.json",
+          true
+        ],
+        [
+          "gitRebaseGrammar",
+          "Git rebase todo",
+          "git-rebase",
+          "text.git-rebase",
+          "./syntaxes/git-rebase.tmLanguage.json",
+          true
+        ],
+        [
+          "gitIgnoreGrammar",
+          "Git ignore",
+          "ignore",
+          "source.ignore",
+          "./syntaxes/ignore.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "git-base",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/git-base/1.95.3/file/vscode.git-base-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.git-base",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/git-base",
+        "sourceVsixMember": {
+          "grammar/syntaxes/git-commit.tmLanguage.json": "extension/syntaxes/git-commit.tmLanguage.json",
+          "grammar/syntaxes/git-rebase.tmLanguage.json": "extension/syntaxes/git-rebase.tmLanguage.json",
+          "grammar/syntaxes/ignore.tmLanguage.json": "extension/syntaxes/ignore.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/git-base",
+      "sourceFile": "vscode.git-base.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/go.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "4b3c3ad5d86712ad13a7716b5527468634622a410ebf4060ed50bbb2e7bafa87",
+      "constName": "vscodeGoPackage",
+      "dataArchivePath": "data/grammars/vscode-go-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/go/1.95.3/file/vscode.go-1.95.3.vsix",
+      "grammars": [
+        [
+          "goGrammar",
+          "Go",
+          "go",
+          "source.go",
+          "./syntaxes/go.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "go",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/go/1.95.3/file/vscode.go-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.go",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/go",
+        "sourceVsixMember": {
+          "grammar/syntaxes/go.tmLanguage.json": "extension/syntaxes/go.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/go",
+      "sourceFile": "vscode.go.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/html-derivative.tmLanguage.json",
+        "grammar/syntaxes/html.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "2b4b39ba284fa051b76ffe211ac663ba599e5ccc7e24eebf9f922cd048f2675d",
+      "constName": "vscodeHtmlPackage",
+      "dataArchivePath": "data/grammars/vscode-html-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/html/1.95.3/file/vscode.html-1.95.3.vsix",
+      "grammars": [
+        [
+          "htmlBasicGrammar",
+          "HTML basic support",
+          "",
+          "text.html.basic",
+          "./syntaxes/html.tmLanguage.json",
+          false
+        ],
+        [
+          "htmlGrammar",
+          "HTML",
+          "html",
+          "text.html.derivative",
+          "./syntaxes/html-derivative.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "html",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/html/1.95.3/file/vscode.html-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.html",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/html",
+        "sourceVsixMember": {
+          "grammar/syntaxes/html-derivative.tmLanguage.json": "extension/syntaxes/html-derivative.tmLanguage.json",
+          "grammar/syntaxes/html.tmLanguage.json": "extension/syntaxes/html.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/html",
+      "sourceFile": "vscode.html.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/java.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "ada4e1cc6db940b68ffa5c41477b80fd1a26acf65dd98ca2b3183162b2dea2f0",
+      "constName": "vscodeJavaPackage",
+      "dataArchivePath": "data/grammars/vscode-java-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/java/1.95.3/file/vscode.java-1.95.3.vsix",
+      "grammars": [
+        [
+          "javaGrammar",
+          "Java",
+          "java",
+          "source.java",
+          "./syntaxes/java.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "java",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/java/1.95.3/file/vscode.java-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.java",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/java",
+        "sourceVsixMember": {
+          "grammar/syntaxes/java.tmLanguage.json": "extension/syntaxes/java.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/java",
+      "sourceFile": "vscode.java.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/JavaScript.tmLanguage.json",
+        "grammar/syntaxes/JavaScriptReact.tmLanguage.json",
+        "grammar/syntaxes/Regular Expressions (JavaScript).tmLanguage",
+        "package.json"
+      ],
+      "archiveSha256": "8ed2e30bc411007b01d2000cc83070027710ca9d95a255d3f007c430a0e4e49a",
+      "constName": "vscodeJavascriptPackage",
+      "dataArchivePath": "data/grammars/vscode-javascript-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/javascript/1.95.3/file/vscode.javascript-1.95.3.vsix",
+      "grammars": [
+        [
+          "jsxGrammar",
+          "JavaScript React",
+          "javascriptreact",
+          "source.js.jsx",
+          "./syntaxes/JavaScriptReact.tmLanguage.json",
+          true
+        ],
+        [
+          "javascriptGrammar",
+          "JavaScript",
+          "javascript",
+          "source.js",
+          "./syntaxes/JavaScript.tmLanguage.json",
+          true
+        ],
+        [
+          "javascriptRegexpGrammar",
+          "JavaScript regular expression support",
+          "",
+          "source.js.regexp",
+          "./syntaxes/Regular Expressions (JavaScript).tmLanguage",
+          false
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "javascript",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/javascript/1.95.3/file/vscode.javascript-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.javascript",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/javascript",
+        "sourceVsixMember": {
+          "grammar/syntaxes/JavaScript.tmLanguage.json": "extension/syntaxes/JavaScript.tmLanguage.json",
+          "grammar/syntaxes/JavaScriptReact.tmLanguage.json": "extension/syntaxes/JavaScriptReact.tmLanguage.json",
+          "grammar/syntaxes/Regular Expressions (JavaScript).tmLanguage": "extension/syntaxes/Regular Expressions (JavaScript).tmLanguage"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/javascript",
+      "sourceFile": "vscode.javascript.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/Bibtex.tmLanguage.json",
+        "grammar/syntaxes/LaTeX.tmLanguage.json",
+        "grammar/syntaxes/TeX.tmLanguage.json",
+        "grammar/syntaxes/cpp-grammar-bailout.tmLanguage.json",
+        "grammar/syntaxes/markdown-latex-combined.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "3a432dd5b3c87bf971b0ce4c5d8b133e4b84b489caf352c960c762699ad130ea",
+      "constName": "vscodeLatexPackage",
+      "dataArchivePath": "data/grammars/vscode-latex-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/latex/1.95.3/file/vscode.latex-1.95.3.vsix",
+      "grammars": [
+        [
+          "texGrammar",
+          "TeX support",
+          "tex",
+          "text.tex",
+          "./syntaxes/TeX.tmLanguage.json",
+          false
+        ],
+        [
+          "latexGrammar",
+          "LaTeX",
+          "latex",
+          "text.tex.latex",
+          "./syntaxes/LaTeX.tmLanguage.json",
+          true
+        ],
+        [
+          "bibtexGrammar",
+          "BibTeX support",
+          "",
+          "text.bibtex",
+          "./syntaxes/Bibtex.tmLanguage.json",
+          false
+        ],
+        [
+          "markdownLatexGrammar",
+          "Markdown LaTeX support",
+          "",
+          "text.tex.markdown_latex_combined",
+          "./syntaxes/markdown-latex-combined.tmLanguage.json",
+          false
+        ],
+        [
+          "cppEmbeddedLatexGrammar",
+          "C++ embedded LaTeX support",
+          "",
+          "source.cpp.embedded.latex",
+          "./syntaxes/cpp-grammar-bailout.tmLanguage.json",
+          false
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "latex",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/latex/1.95.3/file/vscode.latex-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.latex",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/latex",
+        "sourceVsixMember": {
+          "grammar/syntaxes/Bibtex.tmLanguage.json": "extension/syntaxes/Bibtex.tmLanguage.json",
+          "grammar/syntaxes/LaTeX.tmLanguage.json": "extension/syntaxes/LaTeX.tmLanguage.json",
+          "grammar/syntaxes/TeX.tmLanguage.json": "extension/syntaxes/TeX.tmLanguage.json",
+          "grammar/syntaxes/cpp-grammar-bailout.tmLanguage.json": "extension/syntaxes/cpp-grammar-bailout.tmLanguage.json",
+          "grammar/syntaxes/markdown-latex-combined.tmLanguage.json": "extension/syntaxes/markdown-latex-combined.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/latex",
+      "sourceFile": "vscode.latex.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/log.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "e83cc415e8b60dda09e6b63ad4d9bc7f84c36bc1ab322127f7c407684e477513",
+      "constName": "vscodeLogPackage",
+      "dataArchivePath": "data/grammars/vscode-log-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/log/1.95.3/file/vscode.log-1.95.3.vsix",
+      "grammars": [
+        [
+          "logGrammar",
+          "Log",
+          "log",
+          "text.log",
+          "./syntaxes/log.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "log",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/log/1.95.3/file/vscode.log-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.log",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/log",
+        "sourceVsixMember": {
+          "grammar/syntaxes/log.tmLanguage.json": "extension/syntaxes/log.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/log",
+      "sourceFile": "vscode.log.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/lua.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "49ff4b635586b07a3fed0a816cbede5b2fec042ad1aea3e9736d9ad0e0e84083",
+      "constName": "vscodeLuaPackage",
+      "dataArchivePath": "data/grammars/vscode-lua-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/lua/1.95.3/file/vscode.lua-1.95.3.vsix",
+      "grammars": [
+        [
+          "luaGrammar",
+          "Lua",
+          "lua",
+          "source.lua",
+          "./syntaxes/lua.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "lua",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/lua/1.95.3/file/vscode.lua-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.lua",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/lua",
+        "sourceVsixMember": {
+          "grammar/syntaxes/lua.tmLanguage.json": "extension/syntaxes/lua.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/lua",
+      "sourceFile": "vscode.lua.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/markdown.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "c70a816409b79eb9ab67b228418986e102ed34126b6d0bc52d113ed6aa6882c6",
+      "constName": "vscodeMarkdownPackage",
+      "dataArchivePath": "data/grammars/vscode-markdown-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/markdown/1.95.3/file/vscode.markdown-1.95.3.vsix",
+      "grammars": [
+        [
+          "markdownGrammar",
+          "Markdown",
+          "markdown",
+          "text.html.markdown",
+          "./syntaxes/markdown.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "markdown",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/markdown/1.95.3/file/vscode.markdown-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.markdown",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/markdown",
+        "sourceVsixMember": {
+          "grammar/syntaxes/markdown.tmLanguage.json": "extension/syntaxes/markdown.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/markdown",
+      "sourceFile": "vscode.markdown.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/rust.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "3b4efe55359c343e3ab81300ddc1cae1dd6ae709296c9b9c27c28eddb13ba4b3",
+      "constName": "vscodeRustPackage",
+      "dataArchivePath": "data/grammars/vscode-rust-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/rust/1.95.3/file/vscode.rust-1.95.3.vsix",
+      "grammars": [
+        [
+          "rustGrammar",
+          "Rust",
+          "rust",
+          "source.rust",
+          "./syntaxes/rust.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "rust",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/rust/1.95.3/file/vscode.rust-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.rust",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/rust",
+        "sourceVsixMember": {
+          "grammar/syntaxes/rust.tmLanguage.json": "extension/syntaxes/rust.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/rust",
+      "sourceFile": "vscode.rust.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/shell-unix-bash.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "20fd9e0b41a622c24af4a88893a118bd356e0980bddc962c7d10517703d068da",
+      "constName": "vscodeShellscriptPackage",
+      "dataArchivePath": "data/grammars/vscode-shellscript-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/shellscript/1.95.3/file/vscode.shellscript-1.95.3.vsix",
+      "grammars": [
+        [
+          "shellGrammar",
+          "Shell",
+          "shellscript",
+          "source.shell",
+          "./syntaxes/shell-unix-bash.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "shellscript",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/shellscript/1.95.3/file/vscode.shellscript-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.shellscript",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/shellscript",
+        "sourceVsixMember": {
+          "grammar/syntaxes/shell-unix-bash.tmLanguage.json": "extension/syntaxes/shell-unix-bash.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/shellscript",
+      "sourceFile": "vscode.shellscript.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/TypeScript.tmLanguage.json",
+        "grammar/syntaxes/TypeScriptReact.tmLanguage.json",
+        "grammar/syntaxes/jsdoc.js.injection.tmLanguage.json",
+        "grammar/syntaxes/jsdoc.ts.injection.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "61c5d1771fd3cc29d292f687af5a13f1ef4507a98c6beb93f5573ab06d8f4567",
+      "constName": "vscodeTypescriptPackage",
+      "dataArchivePath": "data/grammars/vscode-typescript-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/typescript/1.95.3/file/vscode.typescript-1.95.3.vsix",
+      "grammars": [
+        [
+          "typescriptGrammar",
+          "TypeScript",
+          "typescript",
+          "source.ts",
+          "./syntaxes/TypeScript.tmLanguage.json",
+          true
+        ],
+        [
+          "tsxGrammar",
+          "TypeScript React",
+          "typescriptreact",
+          "source.tsx",
+          "./syntaxes/TypeScriptReact.tmLanguage.json",
+          true
+        ],
+        [
+          "typescriptJsdocGrammar",
+          "TypeScript documentation support",
+          "",
+          "documentation.injection.ts",
+          "./syntaxes/jsdoc.ts.injection.tmLanguage.json",
+          false
+        ],
+        [
+          "javascriptJsdocGrammar",
+          "JavaScript JSX documentation support",
+          "",
+          "documentation.injection.js.jsx",
+          "./syntaxes/jsdoc.js.injection.tmLanguage.json",
+          false
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "typescript",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/typescript/1.95.3/file/vscode.typescript-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.typescript",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/typescript",
+        "sourceVsixMember": {
+          "grammar/syntaxes/TypeScript.tmLanguage.json": "extension/syntaxes/TypeScript.tmLanguage.json",
+          "grammar/syntaxes/TypeScriptReact.tmLanguage.json": "extension/syntaxes/TypeScriptReact.tmLanguage.json",
+          "grammar/syntaxes/jsdoc.js.injection.tmLanguage.json": "extension/syntaxes/jsdoc.js.injection.tmLanguage.json",
+          "grammar/syntaxes/jsdoc.ts.injection.tmLanguage.json": "extension/syntaxes/jsdoc.ts.injection.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/typescript",
+      "sourceFile": "vscode.typescript.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/xml.tmLanguage.json",
+        "grammar/syntaxes/xsl.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "d241086bc1f5bc71be0f28a4b523c077b63eccb8424d29daf3aa50f5321c833f",
+      "constName": "vscodeXmlPackage",
+      "dataArchivePath": "data/grammars/vscode-xml-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/xml/1.95.3/file/vscode.xml-1.95.3.vsix",
+      "grammars": [
+        [
+          "xmlGrammar",
+          "XML",
+          "xml",
+          "text.xml",
+          "./syntaxes/xml.tmLanguage.json",
+          true
+        ],
+        [
+          "xslGrammar",
+          "XSL",
+          "",
+          "text.xml.xsl",
+          "./syntaxes/xsl.tmLanguage.json",
+          false
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "xml",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/xml/1.95.3/file/vscode.xml-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.xml",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/xml",
+        "sourceVsixMember": {
+          "grammar/syntaxes/xml.tmLanguage.json": "extension/syntaxes/xml.tmLanguage.json",
+          "grammar/syntaxes/xsl.tmLanguage.json": "extension/syntaxes/xsl.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/xml",
+      "sourceFile": "vscode.xml.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/yaml.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "af6a7249775ac4eb95be1da654ecd068dac9f209bebaed5a41100de5ba2c31c3",
+      "constName": "vscodeYamlPackage",
+      "dataArchivePath": "data/grammars/vscode-yaml-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/yaml/1.95.3/file/vscode.yaml-1.95.3.vsix",
+      "grammars": [
+        [
+          "yamlGrammar",
+          "YAML",
+          "yaml",
+          "source.yaml",
+          "./syntaxes/yaml.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "yaml",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/yaml/1.95.3/file/vscode.yaml-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.yaml",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/yaml",
+        "sourceVsixMember": {
+          "grammar/syntaxes/yaml.tmLanguage.json": "extension/syntaxes/yaml.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/yaml",
+      "sourceFile": "vscode.yaml.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/JSON.tmLanguage.json",
+        "grammar/syntaxes/JSONC.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "4f1af286b7df93929b6852edf3ee5836db7e30240b014ad3c9d48edac12a274a",
+      "constName": "vscodeJsonPackage",
+      "dataArchivePath": "data/grammars/vscode-json-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/json/1.95.3/file/vscode.json-1.95.3.vsix",
+      "grammars": [
+        [
+          "jsonGrammar",
+          "JSON",
+          "json",
+          "source.json",
+          "./syntaxes/JSON.tmLanguage.json",
+          true
+        ],
+        [
+          "jsoncGrammar",
+          "JSON with comments",
+          "jsonc",
+          "source.json.comments",
+          "./syntaxes/JSONC.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "json",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/json/1.95.3/file/vscode.json-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.json",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/json",
+        "sourceVsixMember": {
+          "grammar/syntaxes/JSON.tmLanguage.json": "extension/syntaxes/JSON.tmLanguage.json",
+          "grammar/syntaxes/JSONC.tmLanguage.json": "extension/syntaxes/JSONC.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/json",
+      "sourceFile": "vscode.json.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/MagicPython.tmLanguage.json",
+        "grammar/syntaxes/MagicRegExp.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "d34b449b1d5e14baf612cf9660da1a489b775f091cb5c612592b418f2f0bf1db",
+      "constName": "vscodePythonPackage",
+      "dataArchivePath": "data/grammars/vscode-python-1.95.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/vscode/python/1.95.3/file/vscode.python-1.95.3.vsix",
+      "grammars": [
+        [
+          "pythonGrammar",
+          "Python",
+          "python",
+          "source.python",
+          "./syntaxes/MagicPython.tmLanguage.json",
+          true
+        ],
+        [
+          "pythonRegexpGrammar",
+          "Python regular expression support",
+          "",
+          "source.regexp.python",
+          "./syntaxes/MagicRegExp.tmLanguage.json",
+          false
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+      "name": "python",
+      "namespace": "vscode",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/vscode/python/1.95.3/file/vscode.python-1.95.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+        "package": "vscode.python",
+        "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/python",
+        "sourceVsixMember": {
+          "grammar/syntaxes/MagicPython.tmLanguage.json": "extension/syntaxes/MagicPython.tmLanguage.json",
+          "grammar/syntaxes/MagicRegExp.tmLanguage.json": "extension/syntaxes/MagicRegExp.tmLanguage.json"
+        },
+        "version": "1.95.3"
+      },
+      "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/python",
+      "sourceFile": "vscode.python.vsix",
+      "version": "1.95.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/nim.json",
+        "grammar/syntaxes/nimble.json",
+        "package.json"
+      ],
+      "archiveSha256": "576780fe7137e37b5d00a0cb6ed5717504e756348939bc0cadbfda63c2b5ca17",
+      "constName": "nimVscodePackage",
+      "dataArchivePath": "data/grammars/nimsaem-nimvscode-0.1.26.zip",
+      "downloadUrl": "https://open-vsx.org/api/nimsaem/nimvscode/0.1.26/file/nimsaem.nimvscode-0.1.26.vsix",
+      "grammars": [
+        [
+          "nimGrammar",
+          "Nim",
+          "nim",
+          "source.nim",
+          "./syntaxes/nim.json",
+          true
+        ],
+        [
+          "nimbleGrammar",
+          "Nimble",
+          "nimble",
+          "source.nimble",
+          "./syntaxes/nimble.json",
+          false
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/saem/vscode-nim/blob/main/LICENSE",
+      "name": "nimvscode",
+      "namespace": "nimsaem",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/nimsaem/nimvscode/0.1.26/file/nimsaem.nimvscode-0.1.26.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/saem/vscode-nim/blob/main/LICENSE",
+        "package": "nimsaem.nimvscode",
+        "repositoryUrl": "https://github.com/saem/vscode-nim",
+        "sourceVsixMember": {
+          "grammar/syntaxes/nim.json": "extension/syntaxes/nim.json",
+          "grammar/syntaxes/nimble.json": "extension/syntaxes/nimble.json"
+        },
+        "version": "0.1.26"
+      },
+      "repositoryUrl": "https://github.com/saem/vscode-nim",
+      "sourceFile": "nimsaem.nimvscode.vsix",
+      "version": "0.1.26"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/codeblock.json",
+        "grammar/syntaxes/fish.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "684d43ad5adb8c236c11a4bd5dec914dd7af4ad55e314c6095e212778700d02e",
+      "constName": "fishPackage",
+      "dataArchivePath": "data/grammars/bmalehorn-vscode-fish-1.0.49.zip",
+      "downloadUrl": "https://open-vsx.org/api/bmalehorn/vscode-fish/1.0.49/file/bmalehorn.vscode-fish-1.0.49.vsix",
+      "grammars": [
+        [
+          "fishGrammar",
+          "Fish",
+          "fish",
+          "source.fish",
+          "./syntaxes/fish.tmLanguage.json",
+          true
+        ],
+        [
+          "fishCodeblockGrammar",
+          "Fish Markdown code block support",
+          "",
+          "markdown.fish.codeblock",
+          "./syntaxes/codeblock.json",
+          false
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/bmalehorn/vscode-fish/blob/master/LICENSE",
+      "name": "vscode-fish",
+      "namespace": "bmalehorn",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/bmalehorn/vscode-fish/1.0.49/file/bmalehorn.vscode-fish-1.0.49.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/bmalehorn/vscode-fish/blob/master/LICENSE",
+        "package": "bmalehorn.vscode-fish",
+        "repositoryUrl": "https://github.com/bmalehorn/vscode-fish",
+        "sourceVsixMember": {
+          "grammar/syntaxes/codeblock.json": "extension/syntaxes/codeblock.json",
+          "grammar/syntaxes/fish.tmLanguage.json": "extension/syntaxes/fish.tmLanguage.json"
+        },
+        "version": "1.0.49"
+      },
+      "repositoryUrl": "https://github.com/bmalehorn/vscode-fish",
+      "sourceFile": "bmalehorn.vscode-fish.vsix",
+      "version": "1.0.49"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/cabal.json",
+        "grammar/syntaxes/haskell.json",
+        "package.json"
+      ],
+      "archiveSha256": "7850f41e3cc1226040f6137a65a844595c711fd93eaa7b24cc3605ddded01b87",
+      "constName": "haskellPackage",
+      "dataArchivePath": "data/grammars/haskell-language-haskell-3.8.0.zip",
+      "downloadUrl": "https://open-vsx.org/api/haskell/language-haskell/3.8.0/file/haskell.language-haskell-3.8.0.vsix",
+      "grammars": [
+        [
+          "haskellGrammar",
+          "Haskell",
+          "haskell",
+          "source.haskell",
+          "./syntaxes/haskell.json",
+          true
+        ],
+        [
+          "cabalGrammar",
+          "Cabal",
+          "cabal",
+          "source.cabal",
+          "./syntaxes/cabal.json",
+          false
+        ]
+      ],
+      "licenseId": "BSD-3-Clause",
+      "licenseUrl": "https://github.com/haskell/language-haskell/blob/master/LICENSE",
+      "name": "language-haskell",
+      "namespace": "haskell",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/haskell/language-haskell/3.8.0/file/haskell.language-haskell-3.8.0.vsix",
+        "licenseId": "BSD-3-Clause",
+        "licenseUrl": "https://github.com/haskell/language-haskell/blob/master/LICENSE",
+        "package": "haskell.language-haskell",
+        "repositoryUrl": "https://github.com/haskell/language-haskell",
+        "sourceVsixMember": {
+          "grammar/syntaxes/cabal.json": "extension/syntaxes/cabal.json",
+          "grammar/syntaxes/haskell.json": "extension/syntaxes/haskell.json"
+        },
+        "version": "3.8.0"
+      },
+      "repositoryUrl": "https://github.com/haskell/language-haskell",
+      "sourceFile": "haskell.language-haskell.vsix",
+      "version": "3.8.0"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/hyprlang.tmGrammar.json",
+        "package.json"
+      ],
+      "archiveSha256": "974d0b1a20d3739ca17af9e61819c46560e1711969e982d2c4571ee1763c491a",
+      "constName": "hyprlangPackage",
+      "dataArchivePath": "data/grammars/fireblast-hyprlang-vscode-0.0.3.zip",
+      "downloadUrl": "https://open-vsx.org/api/fireblast/hyprlang-vscode/0.0.3/file/fireblast.hyprlang-vscode-0.0.3.vsix",
+      "grammars": [
+        [
+          "hyprlangGrammar",
+          "Hyprlang",
+          "hyprlang",
+          "source.hyprlang",
+          "./syntaxes/hyprlang.tmGrammar.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/TheFireBlast/hyprlang-vscode/blob/main/LICENSE",
+      "name": "hyprlang-vscode",
+      "namespace": "fireblast",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/fireblast/hyprlang-vscode/0.0.3/file/fireblast.hyprlang-vscode-0.0.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/TheFireBlast/hyprlang-vscode/blob/main/LICENSE",
+        "package": "fireblast.hyprlang-vscode",
+        "repositoryUrl": "https://github.com/TheFireBlast/hyprlang-vscode",
+        "sourceVsixMember": {
+          "grammar/syntaxes/hyprlang.tmGrammar.json": "extension/syntaxes/hyprlang.tmGrammar.json"
+        },
+        "version": "0.0.3"
+      },
+      "repositoryUrl": "https://github.com/TheFireBlast/hyprlang-vscode",
+      "sourceFile": "fireblast.hyprlang-vscode.vsix",
+      "version": "0.0.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/toml.frontmatter.tmLanguage.json",
+        "grammar/toml.markdown.tmLanguage.json",
+        "grammar/toml.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "325925ddb3f6e7aecd1bebccaa04b34701ed23b2c523f2816c88b5fcfeaa0f94",
+      "constName": "tomlPackage",
+      "dataArchivePath": "data/grammars/tamasfe-even-better-toml-0.21.2.zip",
+      "downloadUrl": "https://open-vsx.org/api/tamasfe/even-better-toml/0.21.2/file/tamasfe.even-better-toml-0.21.2.vsix",
+      "grammars": [
+        [
+          "tomlGrammar",
+          "TOML",
+          "toml",
+          "source.toml",
+          "./toml.tmLanguage.json",
+          true
+        ],
+        [
+          "tomlFrontmatterGrammar",
+          "TOML frontmatter support",
+          "",
+          "markdown.toml.frontmatter.codeblock",
+          "./toml.frontmatter.tmLanguage.json",
+          false
+        ],
+        [
+          "tomlMarkdownGrammar",
+          "TOML Markdown code block support",
+          "",
+          "markdown.toml.codeblock",
+          "./toml.markdown.tmLanguage.json",
+          false
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/tamasfe/taplo/blob/master/LICENSE",
+      "name": "even-better-toml",
+      "namespace": "tamasfe",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/tamasfe/even-better-toml/0.21.2/file/tamasfe.even-better-toml-0.21.2.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/tamasfe/taplo/blob/master/LICENSE",
+        "package": "tamasfe.even-better-toml",
+        "repositoryUrl": "https://github.com/tamasfe/taplo",
+        "sourceVsixMember": {
+          "grammar/toml.frontmatter.tmLanguage.json": "extension/toml.frontmatter.tmLanguage.json",
+          "grammar/toml.markdown.tmLanguage.json": "extension/toml.markdown.tmLanguage.json",
+          "grammar/toml.tmLanguage.json": "extension/toml.tmLanguage.json"
+        },
+        "version": "0.21.2"
+      },
+      "repositoryUrl": "https://github.com/tamasfe/taplo",
+      "sourceFile": "tamasfe.even-better-toml.vsix",
+      "version": "0.21.2"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/autogenerated/lisp.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "c4dce235aceb96f67cd6dfd3956752c04715e6460e98a26cb4ea6221c14feeba",
+      "constName": "lispPackage",
+      "dataArchivePath": "data/grammars/jeff-hykin-better-lisp-syntax-0.0.2.zip",
+      "downloadUrl": "https://open-vsx.org/api/jeff-hykin/better-lisp-syntax/0.0.2/file/jeff-hykin.better-lisp-syntax-0.0.2.vsix",
+      "grammars": [
+        [
+          "lispGrammar",
+          "Lisp",
+          "lisp",
+          "source.lisp",
+          "./autogenerated/lisp.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/jeff-hykin/better-lisp-syntax/blob/master/LICENSE",
+      "name": "better-lisp-syntax",
+      "namespace": "jeff-hykin",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/jeff-hykin/better-lisp-syntax/0.0.2/file/jeff-hykin.better-lisp-syntax-0.0.2.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/jeff-hykin/better-lisp-syntax/blob/master/LICENSE",
+        "package": "jeff-hykin.better-lisp-syntax",
+        "repositoryUrl": "https://github.com/jeff-hykin/better-lisp-syntax",
+        "sourceVsixMember": {
+          "grammar/autogenerated/lisp.tmLanguage.json": "extension/autogenerated/lisp.tmLanguage.json"
+        },
+        "version": "0.0.2"
+      },
+      "repositoryUrl": "https://github.com/jeff-hykin/better-lisp-syntax",
+      "sourceFile": "jeff-hykin.better-lisp-syntax.vsix",
+      "version": "0.0.2"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/astro.tmLanguage.json",
+        "grammar/syntaxes/markdown.astro.tmLanguage.json",
+        "grammar/syntaxes/mdx.astro.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "e7724c618fbf6da4e0ff22dddeb9c8cf7e924a9657c9e163ce5c7fbf362f2da0",
+      "constName": "astroPackage",
+      "dataArchivePath": "data/grammars/astro-build-astro-vscode-2.16.20.zip",
+      "downloadUrl": "https://open-vsx.org/api/astro-build/astro-vscode/alpine-arm64/2.16.20/file/astro-build.astro-vscode-2.16.20@alpine-arm64.vsix",
+      "grammars": [
+        [
+          "astroGrammar",
+          "Astro",
+          "astro",
+          "source.astro",
+          "./syntaxes/astro.tmLanguage.json",
+          true
+        ],
+        [
+          "astroMarkdownGrammar",
+          "Astro Markdown support",
+          "",
+          "text.html.markdown.astro",
+          "./syntaxes/markdown.astro.tmLanguage.json",
+          false
+        ],
+        [
+          "astroMdxGrammar",
+          "Astro MDX support",
+          "",
+          "source.mdx.astro",
+          "./syntaxes/mdx.astro.tmLanguage.json",
+          false
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/withastro/astro/blob/main/LICENSE",
+      "name": "astro-vscode",
+      "namespace": "astro-build",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://open-vsx.org/api/astro-build/astro-vscode/alpine-arm64/2.16.20/file/astro-build.astro-vscode-2.16.20@alpine-arm64.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/withastro/astro/blob/main/LICENSE",
+        "package": "astro-build.astro-vscode",
+        "repositoryUrl": "https://github.com/withastro/astro/tree/main/packages/language-tools/vscode",
+        "sourceVsixMember": {
+          "grammar/syntaxes/astro.tmLanguage.json": "extension/syntaxes/astro.tmLanguage.json",
+          "grammar/syntaxes/markdown.astro.tmLanguage.json": "extension/syntaxes/markdown.astro.tmLanguage.json",
+          "grammar/syntaxes/mdx.astro.tmLanguage.json": "extension/syntaxes/mdx.astro.tmLanguage.json"
+        },
+        "version": "2.16.20"
+      },
+      "repositoryUrl": "https://github.com/withastro/astro/tree/main/packages/language-tools/vscode",
+      "sourceFile": "astro-build.astro-vscode.vsix",
+      "targetPlatform": "alpine-arm64",
+      "version": "2.16.20"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/out/syntaxes/tcl.json",
+        "package.json"
+      ],
+      "archiveSha256": "73c2d0d3d8a071459977d5bc196fecb6f3848046e7a222b083545c978069a13c",
+      "constName": "tclPackage",
+      "dataArchivePath": "data/grammars/bitwisecook-tcl-0.4.3.zip",
+      "downloadUrl": "https://github.com/bitwisecook/vscode-tcl/releases/download/0.4.3/tcl-0.4.3.vsix",
+      "grammars": [
+        [
+          "tclGrammar",
+          "Tcl",
+          "tcl",
+          "source.tcl",
+          "./out/syntaxes/tcl.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/bitwisecook/vscode-tcl/blob/main/LICENSE",
+      "name": "tcl",
+      "namespace": "bitwisecook",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://github.com/bitwisecook/vscode-tcl/releases/download/0.4.3/tcl-0.4.3.vsix",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/bitwisecook/vscode-tcl/blob/main/LICENSE",
+        "package": "bitwisecook.tcl",
+        "repositoryUrl": "https://github.com/bitwisecook/vscode-tcl",
+        "sourceVsixMember": {
+          "grammar/out/syntaxes/tcl.json": "extension/out/syntaxes/tcl.json"
+        },
+        "version": "0.4.3"
+      },
+      "repositoryUrl": "https://github.com/bitwisecook/vscode-tcl",
+      "sourceFile": "bitwisecook.tcl.vsix",
+      "version": "0.4.3"
+    }
+  ],
+  "sourceVsixSha256": {
+    "astro-build.astro-vscode.vsix": "64fb9007bcfeb5cd64e63aaaecea99ab9a7d26ba6c41b3c1b8130536b304c3ce",
+    "bitwisecook.tcl.vsix": "1d380f8f2e9e4f7cc3756656e2b0d7338bc5e67667a61ccdbff4253b7f70ae7d",
+    "bmalehorn.vscode-fish.vsix": "e15419680986f2c30b6b0f25e9a4067ca4ee158eff797b771e0f73f7e534751c",
+    "fireblast.hyprlang-vscode.vsix": "6678df68388684886957c911030f10b5ff749d72ffe319c5c259ca6f4d6c7d29",
+    "haskell.language-haskell.vsix": "c031af18a23e603c246d8295d228e7077f8dc163d902ec0b378329155dfb285b",
+    "jeff-hykin.better-lisp-syntax.vsix": "068ef8c3cfca0b1e09fa8af50d60533ecf4ef08ba51e721ca0f54434526f7e2d",
+    "nimsaem.nimvscode.vsix": "e0ac9d990c992f1937bb6f7a81d7a2bc68cf9484563ee9105bba0980472768ea",
+    "tamasfe.even-better-toml.vsix": "f3dc44f1c551edef397a79f0f8c5db4066c6a547e210b5c3cec4400bf173b008",
+    "vscode.cpp.vsix": "b70b8b007d21c89f929c32eaa89cf15e710723e091be682418c125cc93733c36",
+    "vscode.csharp.vsix": "384dd3d44b3ebb8ff377c4bfa7a4a2d500a48c22fa30e4697b23d3e2158192a7",
+    "vscode.diff.vsix": "ce799c16ac50165bbf2a07fbb353f7a25f3df9d52f91b75dcfe4017d56389335",
+    "vscode.docker.vsix": "5de2f31e7e8e9c64b17d0b2eb915a5c14653904376a06d07f2229890fe296078",
+    "vscode.git-base.vsix": "956c41e4e8377a6b113a6a64fcd5308deaad44a827288f6bfcd5cf1c83037483",
+    "vscode.go.vsix": "af091f9e53479ccd5e3dcee8b770973c7a1cc40d70afaf3aa1066d112a95a400",
+    "vscode.html.vsix": "193c7d03374f3f8b71f01dabae05c93b86069b28521cbb18fad0beab6eb42732",
+    "vscode.java.vsix": "885469b3e7da89f8b8d0eae58b9ce065a59e67d84f507855460f7d6c9a67b17b",
+    "vscode.javascript.vsix": "df55b5174c57ec057d78d4b9ddd225cc36095b6fc845f1a0df87f1e13dfb64b2",
+    "vscode.json.vsix": "53667e2cc9875c6872f8d7eff75314c46f8c0a30398efd9e7bec437b7cb928c3",
+    "vscode.latex.vsix": "b5b1ef21dfd8ef6e65a89549225ee767ab4a4a1544082e5a159e95d03f78cfa6",
+    "vscode.log.vsix": "cc3908ef8cf97a86dbed68c1bf2729ef17e18ff691aa8294d330bac45733da35",
+    "vscode.lua.vsix": "90a58f6cfe76fcd391d9fe672d339f6a275f13ec91ce10316d6befe41a78b57e",
+    "vscode.markdown.vsix": "53591b889e8941db812f263d8e5eaa34ec83718e399ecd7a1e178410bd3877a9",
+    "vscode.python.vsix": "37c2a0cdfa668bd4dc37265d7d172300a20350098651b1843ee220a30c5e2d88",
+    "vscode.rust.vsix": "23dd92f554f968fbeefe9976fdb9996c35b2152cf0778cf74bd1019a5ed4b8eb",
+    "vscode.shellscript.vsix": "b60e2bf7de39524bf0608653583b5e0360fe78e3ec59e94f2bd1b9255e89c38d",
+    "vscode.typescript.vsix": "493019c0375ad6d46a8811e041d70f68eb57ed5e5a9698125e4691eaf6f2d8fc",
+    "vscode.xml.vsix": "34024416f2583fa48f7f1a8ab7f30b37986eea54d9a7a6be1f25aff8507dd0a1",
+    "vscode.yaml.vsix": "1c60f93adad36f20de0696bc75f8b3829f3fc4c760f4d8022ec9f934436bbeb0"
+  }
+}

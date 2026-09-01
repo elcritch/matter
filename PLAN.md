@@ -212,6 +212,20 @@ runtime dependency on the reference checkout.
 Exit criterion: callers can select a known grammar package and form its direct Open VSX URLs
 without a Node.js or network dependency.
 
+### Phase 8 — Reproducible Moe grammar archive catalog
+
+- [x] Record the 35 `SourceLanguage` modes from Moe commit
+  `0dcc33b87cf672e727c54d39b48bd81cc68e6c2c` and map each to an imported TextMate scope.
+- [x] Pin source package/version/license/repository/direct VSIX URL and source SHA-256 metadata.
+- [x] Bundle allowlisted primary and same-package support grammars as deterministic ordinary
+  `ZIP_STORED` archives under `data/grammars/`, retaining manifest, license, and provenance.
+- [x] Generate the public Nim catalog and archive notices from one source manifest, without npm.
+- [x] Add online regeneration and offline archive verification tasks, including checksum, member,
+  license, scope, and Matter parsing coverage.
+
+Exit criterion: a clean checkout can verify all bundled archives offline, while an intentional
+manifest update can reproducibly rebuild the same archives after pinned source downloads validate.
+
 ## Verification Matrix
 
 Every completed phase is checked with deterministic local tests. The milestone verification is:
