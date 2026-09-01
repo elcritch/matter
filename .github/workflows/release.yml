@@ -1,0 +1,92 @@
+name: Release grammar archives
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      NIM_VERSION: 2.2.10
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Atlas dependencies
+        uses: actions/cache@v4
+        with:
+          path: deps
+          key: ${{ runner.os }}-nim-${{ env.NIM_VERSION }}-atlas-${{ hashFiles('matter.nimble') }}
+
+      - name: Install Atlas
+        shell: bash
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/nim-lang/atlas/HEAD/install.sh | bash -
+          echo "$HOME/.nimble/bin" >> "$GITHUB_PATH"
+
+      - name: Install Nim
+        run: atlas env "$NIM_VERSION" --binary --github-path
+
+      - name: Install dependencies
+        run: atlas install
+
+      - name: Run tests
+        run: atlas-run tests -- -d:release
+
+      - name: Verify grammar archives offline
+        run: nim verifyGrammars
+
+      - name: Validate release tag and assets
+        shell: bash
+        run: |
+          python3 - "$RUNNER_TEMP/grammar-archives.txt" <<'PY'
+          import json
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          nimble = Path("matter.nimble").read_text(encoding="utf-8")
+          match = re.search(r'^\s*version\s*=\s*"([^"]+)"\s*$', nimble, re.MULTILINE)
+          if match is None:
+              raise SystemExit("Could not read the version from matter.nimble.")
+
+          expected_tag = "v" + match.group(1)
+          if os.environ["GITHUB_REF_NAME"] != expected_tag:
+              raise SystemExit(
+                  f"Release tag must be {expected_tag}, got {os.environ['GITHUB_REF_NAME']}."
+              )
+
+          catalog = json.loads(Path("data/grammars/catalog.json").read_text(encoding="utf-8"))
+          expected = [package["dataArchivePath"] for package in catalog["packages"]]
+          if len(expected) != len(set(expected)):
+              raise SystemExit("Grammar catalog contains duplicate archive paths.")
+          if any(not path.startswith("data/grammars/") or not path.endswith(".zip") for path in expected):
+              raise SystemExit("Grammar catalog contains an invalid archive path.")
+
+          actual = {str(path) for path in Path("data/grammars").glob("*.zip")}
+          expected_set = set(expected)
+          missing = sorted(expected_set - actual)
+          extra = sorted(actual - expected_set)
+          if missing or extra:
+              details = []
+              if missing:
+                  details.append("missing: " + ", ".join(missing))
+              if extra:
+                  details.append("extra: " + ", ".join(extra))
+              raise SystemExit("Grammar archive catalog mismatch (" + "; ".join(details) + ").")
+
+          Path(sys.argv[1]).write_text("\n".join(sorted(expected_set)) + "\n", encoding="utf-8")
+          print(f"Validated {len(expected_set)} grammar archives from catalog.json.")
+          PY
+
+      - name: Publish GitHub Release
+        shell: bash
+        run: |
+          mapfile -t archives < "$RUNNER_TEMP/grammar-archives.txt"
+          gh release create "$GITHUB_REF_NAME" "${archives[@]}" --verify-tag --generate-notes
