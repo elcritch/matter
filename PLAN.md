@@ -24,10 +24,13 @@ The first complete port milestone must support:
 - Dynamic scope names and end/while expressions using capture substitutions.
 - Grammar injections and TextMate scope selectors.
 - Plain scope tokens compatible with the shape of `vscode-textmate`'s `tokenizeLine` result.
+- JSON and XML plist themes with TextMate scope-path specificity and deterministic color maps.
+- Theme-aware `tokenizeLine2` packed metadata, variable-font spans, grammar configuration, and
+  state-stack diff transport.
 - Deterministic termination for malformed zero-width grammar loops.
 
-Theme parsing and binary metadata tokens are a later compatibility layer. They must not complicate
-or leak into the plain scope-token API.
+Theme parsing and binary metadata are additive compatibility layers; they do not change the plain
+scope-token shape or make theme configuration mandatory.
 
 ## Public API Direction
 
@@ -35,13 +38,20 @@ The root `matter` module will re-export a narrow API built around these concepts
 
 - `RawGrammar` and `RawRule`: parsed TextMate grammar data.
 - `parseRawGrammar(content, filePath)`: parse JSON or XML plist grammar text.
-- `Registry`: owns raw grammars and injection registrations.
-- `addGrammar` and `loadGrammar`: register and compile grammars by scope name.
+- `RawTheme`, `parseRawTheme`, and `newTheme`: parse and resolve JSON or XML plist themes.
+- `Registry`: owns raw grammars, injection registrations, and the current theme.
+- `addGrammar`, `setTheme`, and `loadGrammar`: register grammars, replace themes, and compile plain
+  or configured grammars by scope name.
 - `Grammar`: compiled tokenizer handle.
+- `GrammarConfiguration`: initial/embedded languages, token-type overrides, and bracket selectors.
 - `StateStack`: immutable cross-line tokenizer state; `nil` means the initial state.
+- `StackDiff`: a reference-identity state suffix produced and applied by the stack-diff helpers.
 - `Token`: half-open byte offsets and the active scope path.
-- `TokenizeLineResult`: tokens, next state, and an early-stop flag.
+- `TokenizeLineResult`: tokens, variable-font spans, next state, and an early-stop flag.
+- `TokenizeLineResult2`: alternating `uint32` byte offsets and encoded metadata plus fonts/state.
 - `tokenizeLine(grammar, line, previousState, timeLimitMs)`: tokenize one line.
+- `tokenizeLine2(grammar, line, previousState, timeLimitMs)`: tokenize and resolve binary metadata.
+- `EncodedTokenAttributes` accessors: decode language, token type, brackets, style, and color IDs.
 
 Offsets are UTF-8 byte offsets, matching Nim string indexing and `reni`. Missing required grammars,
 invalid grammar shapes, and invalid regular expressions raise one of Matter's exported catchable
@@ -118,46 +128,45 @@ Exit criterion: `atlas-run tests` passes in all three modes and the README examp
 
 #### Phase 5A — Theme model, readers, and lookup
 
-- [ ] Define raw theme settings, resolved style attributes, font styles, and `ThemeError`.
-- [ ] Parse JSON themes and XML plist `.tmTheme` files through `parseRawTheme`.
-- [ ] Resolve defaults, inherited fields, comma/array scopes, parent scopes, and `>` child
+- [x] Define raw theme settings, resolved style attributes, font styles, and `ThemeError`.
+- [x] Parse JSON themes and XML plist `.tmTheme` files through `parseRawTheme`.
+- [x] Resolve defaults, inherited fields, comma/array scopes, parent scopes, and `>` child
   combinators using `vscode-textmate`'s specificity ordering.
-- [ ] Build deterministic color IDs, validate the supported hex forms, and support an optional
+- [x] Build deterministic color IDs, validate the supported hex forms, and support an optional
   frozen caller-provided color map.
-- [ ] Add curated theme parser and matcher conformance tests.
+- [x] Add curated theme parser and matcher conformance tests.
 
 Exit criterion: equivalent JSON/plist settings resolve to the same defaults, color map, and style
 attributes for representative scope paths.
 
 #### Phase 5B — Encoded metadata and grammar configuration
 
-- [ ] Define `StandardTokenType` plus the public 32-bit metadata type and field accessors, using
+- [x] Define `StandardTokenType` plus the public 32-bit metadata type and field accessors, using
   the `FontStyle` flags from the theme module.
-- [ ] Match the reference bit layout exactly: language 8 bits, token type 2 bits, balanced bracket
+- [x] Match the reference bit layout exactly: language 8 bits, token type 2 bits, balanced bracket
   1 bit, font style 4 bits, foreground 9 bits, and background 8 bits.
-- [ ] Add grammar configuration for an initial language, embedded-language scopes, token-type
+- [x] Add grammar configuration for an initial language, embedded-language scopes, token-type
   selector overrides, and balanced/unbalanced bracket selectors.
-- [ ] Test field replacement, unsigned high-bit behavior, scope-prefix precedence, selector
+- [x] Test field replacement, unsigned high-bit behavior, scope-prefix precedence, selector
   ordering, and the reference metadata constants.
 
 Exit criterion: packed values and every decoded field match curated `vscode-textmate` vectors.
 
 #### Phase 5C — Binary tokenization and state transport
 
-- [ ] Let registries own and replace a resolved theme and expose its color map.
-- [ ] Add configured grammar loading without changing the existing plain `loadGrammar` behavior.
-- [ ] Add `tokenizeLine2`, returning alternating `uint32` start offsets and metadata while
+- [x] Let registries own and replace a resolved theme and expose its color map.
+- [x] Add configured grammar loading without changing the existing plain `loadGrammar` behavior.
+- [x] Add `tokenizeLine2`, returning alternating `uint32` start offsets and metadata while
   coalescing adjacent equal metadata and preserving UTF-8 byte offsets.
-- [ ] Return coalesced variable-font spans from plain and binary tokenization.
-- [ ] Implement reference-equality state-stack diffs and deterministic application of those diffs.
-- [ ] Compare multiline theme, embedded-language, token-type override, bracket, and stack-diff
+- [x] Return coalesced variable-font spans from plain and binary tokenization.
+- [x] Implement reference-equality state-stack diffs and deterministic application of those diffs.
+- [x] Compare multiline theme, embedded-language, token-type override, bracket, and stack-diff
   outputs with curated `vscode-textmate` cases.
 
 Exit criterion: themed multiline fixtures produce reference-compatible packed tokens, fonts, state
 transitions, and applied stack diffs in debug, release, and danger modes.
 
-This phase extends the engine after plain scope tokenization is stable; it does not block the first
-usable release.
+This phase extends the stable plain tokenizer without changing the shape of its scope tokens.
 
 ## Verification Matrix
 

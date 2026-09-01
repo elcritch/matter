@@ -91,7 +91,8 @@ let binary = themedGrammar.tokenizeLine2("/* open")
 let startIndex = binary.tokens[0]
 let metadata = binary.tokens[1]
 echo startIndex, " ", getLanguageId(metadata), " ", getTokenType(metadata)
-echo getForeground(metadata), " ", getBackground(metadata), " ", getFontStyle(metadata)
+echo getForeground(metadata), " ", getBackground(metadata), " ",
+  fontStyleValue(getFontStyle(metadata))
 ```
 
 `tokenizeLine2` returns alternating `uint32` start offsets and metadata values:
