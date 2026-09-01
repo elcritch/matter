@@ -25,7 +25,10 @@ suite "matter public API":
     check first.ruleStack != nil
     check first.tokens[^1].scopes == @["source.example", "comment.block.example"]
     check second.ruleStack.depth == 1
-    check second.tokens[^1].startIndex == 0
+    check second.tokens.len == 2
+    check second.tokens[0].startIndex == 0
+    check second.tokens[0].endIndex == 6
+    check second.tokens[^1].startIndex == 6
     check second.tokens[^1].endIndex == 8
     check second.tokens[^1].scopes == @["source.example", "comment.block.example"]
 

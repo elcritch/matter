@@ -696,17 +696,15 @@ proc tokenizeLine*(
 proc addToken(
     tokens: var seq[Token], start, stop: int, scopes: seq[string], visibleLength: int
 ) =
+  ## Plain tokens retain every tokenizer emission boundary. `tokenizeLine2`
+  ## performs its own metadata coalescing where the reference permits it.
   let boundedStart = min(start, visibleLength)
   let boundedStop = min(stop, visibleLength)
   if boundedStop <= boundedStart:
     return
-  if tokens.len > 0 and tokens[^1].endIndex == boundedStart and
-      tokens[^1].scopes == scopes:
-    tokens[^1].endIndex = boundedStop
-  else:
-    tokens.add(
-      Token(startIndex: boundedStart, endIndex: boundedStop, scopes: copyScopes(scopes))
-    )
+  tokens.add(
+    Token(startIndex: boundedStart, endIndex: boundedStop, scopes: copyScopes(scopes))
+  )
 
 proc scopeMatches(scope, prefix: string): bool {.inline.} =
   scope == prefix or
@@ -1132,6 +1130,7 @@ proc checkWhiles(
       if not matched.found:
         return frame.parent
       let span = matched.matchSpan
+      addToken(tokens, position, span.a, frame.scopes, visibleLength)
       applyCaptures(
         grammar, line, tokens, frame.scopes, frame.rule.whileCaptures, matched,
         visibleLength,

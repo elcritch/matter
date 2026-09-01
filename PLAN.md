@@ -107,7 +107,7 @@ match the `vscode-textmate` behavior used by injections.
 - [x] Implement `match`, `begin`/`end`, and `begin`/`while` state transitions.
 - [x] Carry immutable state between lines.
 - [x] Apply capture scopes, dynamic names, end backreferences, and nested retokenization.
-- [x] Emit coalesced half-open tokens and exclude the synthetic newline.
+- [x] Emit reference-compatible half-open token boundaries and exclude the synthetic newline.
 - [x] Detect zero-width non-progress loops and honor an optional time limit.
 - [x] Apply matching injections with left/right priority.
 
@@ -167,6 +167,42 @@ Exit criterion: themed multiline fixtures produce reference-compatible packed to
 transitions, and applied stack diffs in debug, release, and danger modes.
 
 This phase extends the stable plain tokenizer without changing the shape of its scope tokens.
+
+### Phase 6 — Expanded upstream conformance
+
+#### Phase 6A — Matcher and metadata vectors
+
+- [x] Port all 27 cases from `src/tests/matcher.test.ts` with one-to-one case names and expected
+  results.
+- [x] Port the 9 enabled encoded-metadata cases from `src/tests/grammar.test.ts`.
+- [x] Port the 2 enabled font-span cases from `src/tests/grammar.test.ts`.
+- [x] Record the upstream source file and pinned commit beside each conformance suite.
+
+Exit criterion: all 38 matcher, metadata, and font cases pass with the same expected values as the
+pinned `vscode-textmate` checkout.
+
+#### Phase 6B — Begin/while tokenization fixtures
+
+- [x] Port all 9 cases from `test-cases/suite1/whileTests.json` and its repository-owned grammar
+  fixture.
+- [x] Preserve the upstream expected token text, scope paths, and cross-line state transitions.
+- [x] Keep the fixture self-contained so tests never read from ignored `deps/` or access the
+  network.
+- [x] Preserve plain tokenizer emission boundaries while continuing to coalesce binary metadata
+  and font spans where the reference does.
+
+Exit criterion: the 9 begin/while cases pass from a clean checkout in debug, release, and danger
+modes.
+
+#### Phase 6C — Broader fixture corpus
+
+- [ ] Select the next portable tokenizer and theme fixture tranche based on unsupported-feature
+  coverage rather than duplicating existing Matter-only regressions.
+- [ ] Track ported upstream cases separately from Matter-specific tests so coverage counts remain
+  auditable.
+
+Exit criterion: the next fixture tranche has explicit provenance, exact expected output, and no
+runtime dependency on the reference checkout.
 
 ## Verification Matrix
 
