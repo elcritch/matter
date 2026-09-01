@@ -56,6 +56,20 @@ type
     isFirstLine: bool
     beginRuleCapturedEol: bool
 
+  StateStackFrame* = object
+    ## An opaque immutable frame snapshot used to transport state-stack diffs.
+    rule: CompiledRule
+    nameScopes, scopes: seq[string]
+    endRegex: Regex
+    hasEndRegex: bool
+    enterPos, anchorPos: int
+    isRoot, isFirstLine, beginRuleCapturedEol: bool
+
+  StackDiff* = object
+    ## A physical-identity diff: pop ``pops`` frames, then push ``newFrames``.
+    pops*: int
+    newFrames*: seq[StateStackFrame]
+
   Token* = object
     ## A half-open UTF-8 byte range with the active outer-to-inner scope path.
     startIndex*, endIndex*: int
@@ -523,6 +537,65 @@ proc withAnchor(stack: StateStack, anchorPos: int): StateStack =
     isFirstLine: stack.isFirstLine,
     beginRuleCapturedEol: stack.beginRuleCapturedEol,
   )
+
+proc toStateStackFrame(stack: StateStack): StateStackFrame =
+  StateStackFrame(
+    rule: stack.rule,
+    nameScopes: stack.nameScopes,
+    scopes: stack.scopes,
+    endRegex: stack.endRegex,
+    hasEndRegex: stack.hasEndRegex,
+    enterPos: stack.enterPos,
+    anchorPos: stack.anchorPos,
+    isRoot: stack.isRoot,
+    isFirstLine: stack.isFirstLine,
+    beginRuleCapturedEol: stack.beginRuleCapturedEol,
+  )
+
+proc diffStateStacksRefEq*(first, second: StateStack): StackDiff =
+  ## Diff stacks by physical frame identity, never structural equality.
+  var left = first
+  var right = second
+  var leftDepth = left.depth
+  var rightDepth = right.depth
+  while cast[pointer](left) != cast[pointer](right):
+    if not left.isNil and (right.isNil or leftDepth >= rightDepth):
+      inc result.pops
+      left = left.parent
+      dec leftDepth
+    else:
+      if right.isNil:
+        raise newException(MatterError, "invalid state-stack diff")
+      result.newFrames.add(right.toStateStackFrame)
+      right = right.parent
+      dec rightDepth
+  result.newFrames.reverse()
+
+proc applyStateStackDiff*(stack: StateStack, diff: StackDiff): StateStack =
+  ## Apply a physical-identity stack diff, validating underflow and bad frames.
+  if diff.pops < 0:
+    raise newException(MatterError, "state-stack diff has a negative pop count")
+  result = stack
+  for _ in 0 ..< diff.pops:
+    if result.isNil:
+      raise newException(MatterError, "state-stack diff pops beyond the root")
+    result = result.parent
+  for frame in diff.newFrames:
+    if frame.rule.isNil:
+      raise newException(MatterError, "state-stack diff contains an invalid frame")
+    result = StateStack(
+      parent: result,
+      rule: frame.rule,
+      nameScopes: frame.nameScopes,
+      scopes: frame.scopes,
+      endRegex: frame.endRegex,
+      hasEndRegex: frame.hasEndRegex,
+      enterPos: frame.enterPos,
+      anchorPos: frame.anchorPos,
+      isRoot: frame.isRoot,
+      isFirstLine: frame.isFirstLine,
+      beginRuleCapturedEol: frame.beginRuleCapturedEol,
+    )
 
 proc addToken(
     tokens: var seq[Token], start, stop: int, scopes: seq[string], visibleLength: int
