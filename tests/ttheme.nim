@@ -203,6 +203,39 @@ suite "TextMate themes":
     )
     check theme.color(theme.match(["x.long", "parent", "a"]).foregroundId) == "#300000"
 
+  test "matches reference inheritance and overwrite boundaries":
+    let theme = newTheme(
+      parseRawTheme(
+        """{"settings": [
+        {"settings": {"foreground": "#100000", "fontFamily": "Mono", "fontSize": 10}},
+        {"settings": {"background": "#200000", "fontStyle": "italic"}},
+        {"scope": ",, var, constant,,", "settings": {"foreground": "#300000"}},
+        {"scope": "var", "settings": {"fontStyle": "bold"}},
+        {"scope": "source.css var", "settings": {"foreground": "#400000"}},
+        {"scope": "source.css var", "settings": {"fontStyle": "underline"}},
+        {"scope": "var.identifier", "settings": {"foreground": "#500000"}}
+      ]}""",
+        "inheritance.json",
+      )
+    )
+    let defaults = theme.defaults()
+    check defaults.fontStyle == fontStyleItalic
+    check theme.color(defaults.foregroundId) == "#100000"
+    check theme.color(defaults.backgroundId) == "#200000"
+    let unmatched = theme.match(["plain"])
+    check unmatched.fontStyle == fontStyleNotSet
+    check unmatched.foregroundId == 0
+    check unmatched.backgroundId == 0
+    check unmatched.fontFamily == "Mono"
+    check unmatched.fontSize == 10.0
+    let inheritedParent = theme.match(["source.css", "nested", "var.other"])
+    check inheritedParent.fontStyle == fontStyleUnderline
+    check theme.color(inheritedParent.foregroundId) == "#400000"
+    let deeperMain = theme.match(["source.css", "var.identifier"])
+    check deeperMain.fontStyle == fontStyleBold
+    check theme.color(deeperMain.foregroundId) == "#500000"
+    check theme.color(theme.match(["constant.numeric"]).foregroundId) == "#300000"
+
   test "matches #23460 and ignores invalid colors":
     let issueTheme = newTheme(
       parseRawTheme(
