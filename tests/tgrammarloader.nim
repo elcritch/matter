@@ -1,6 +1,7 @@
-import std/[options, os, sequtils, strutils, tempfiles, unittest]
+import std/[options, os, sequtils, strutils, tables, tempfiles, unittest]
 
 import matter/[engine, grammarloader, grammarpackages]
+import zippy/ziparchives
 
 suite "grammar package loader":
   test "resolves cyclic catalog dependencies from an in-memory source":
@@ -41,7 +42,7 @@ suite "grammar package loader":
     let root = currentSourcePath.parentDir.parentDir
     let registry = newRegistry()
     let loaded =
-      registry.loadGrammarPackage(storedZipResourceSource(root), "text.html.markdown")
+      registry.loadGrammarPackage(zipResourceSource(root), "text.html.markdown")
     check "text.html.markdown" in loaded.loadedScopeNames
     check loaded.unresolvedIncludes.len > 0
     check loaded.unresolvedIncludes.anyIt(it.includingScope == "text.html.markdown")
@@ -52,8 +53,7 @@ suite "grammar package loader":
   test "loads support grammars from one bundled archive":
     let root = currentSourcePath.parentDir.parentDir
     let registry = newRegistry()
-    let loaded =
-      registry.loadGrammarPackage(storedZipResourceSource(root), "source.nim")
+    let loaded = registry.loadGrammarPackage(zipResourceSource(root), "source.nim")
     check "source.nim" in loaded.loadedScopeNames
     check "source.nimble" in loaded.loadedScopeNames
     discard registry.loadGrammar("source.nim")
@@ -61,7 +61,7 @@ suite "grammar package loader":
   test "loads contributed injection grammars from a package":
     let root = currentSourcePath.parentDir.parentDir
     let registry = newRegistry()
-    let loaded = registry.loadGrammarPackage(storedZipResourceSource(root), "source.ts")
+    let loaded = registry.loadGrammarPackage(zipResourceSource(root), "source.ts")
     check "documentation.injection.ts" in loaded.loadedScopeNames
     discard registry.loadGrammar("source.ts")
 
@@ -85,8 +85,9 @@ suite "grammar package loader":
     expect MatterError:
       discard registry.loadGrammarPackage(source, "source.not-catalogued")
 
-  test "rejects malformed and unsupported stored ZIP archives":
+  test "extracts compressed ZIP members and handles failed reads without caching them":
     let contribution = findGrammar("source.nim").get
+    let missingContribution = findGrammar("source.nimble").get
     let (temporaryFile, temporaryPath) = createTempFile("matter-loader-", ".tmp")
     temporaryFile.close()
     removeFile(temporaryPath)
@@ -103,25 +104,51 @@ suite "grammar package loader":
       removeDir(temporaryRoot)
 
     let archivePath = temporaryRoot / contribution.dataArchivePath
-    let source = storedZipResourceSource(temporaryRoot)
-    let truncatedHeader = "PK\x03\x04"
-    writeFile(archivePath, truncatedHeader)
-    expect MatterError:
-      discard source(contribution)
+    let grammar = """{"scopeName": "source.nim", "patterns": []}"""
+    var entries = initTable[string, string]()
+    entries[contribution.archiveMember] = grammar
+    let compressedArchive = createZipArchive(entries)
+    writeFile(archivePath, compressedArchive)
 
-    var unsupportedMethod = "PK\x03\x04" & "\x00".repeat(26)
-    unsupportedMethod[8] = char(8)
-    writeFile(archivePath, unsupportedMethod)
-    expect MatterError:
-      discard source(contribution)
+    let source = zipResourceSource(temporaryRoot)
+    check source(contribution).get == grammar
+    check source(missingContribution).isNone
+    removeFile(archivePath)
+    check source(contribution).get == grammar
 
-    let missingCentralDirectory = "PK\x03\x04" & "\x00".repeat(26)
-    writeFile(archivePath, missingCentralDirectory)
-    expect MatterError:
-      discard source(contribution)
+    var corruptArchive = compressedArchive
+    let centralDirectory = corruptArchive.find("PK\x01\x02")
+    check centralDirectory >= 0
+    corruptArchive[centralDirectory + 16] =
+      char(uint8(corruptArchive[centralDirectory + 16]) xor 1'u8)
+    writeFile(archivePath, corruptArchive)
+    let retryingSource = zipResourceSource(temporaryRoot)
+    try:
+      discard retryingSource(contribution)
+      check false
+    except MatterError as error:
+      check error.msg.contains("crc32")
 
-    var truncatedMember = "PK\x03\x04" & "\x00".repeat(26)
-    truncatedMember[18] = char(1)
-    writeFile(archivePath, truncatedMember)
+    writeFile(archivePath, compressedArchive)
+    check retryingSource(contribution).get == grammar
+
+  test "translates malformed ZIP errors":
+    let contribution = findGrammar("source.nim").get
+    let (temporaryFile, temporaryPath) = createTempFile("matter-loader-", ".tmp")
+    temporaryFile.close()
+    removeFile(temporaryPath)
+    let temporaryRoot = temporaryPath & ".dir"
+    let dataDirectory = temporaryRoot / "data"
+    let grammarDirectory = dataDirectory / "grammars"
+    createDir(temporaryRoot)
+    createDir(dataDirectory)
+    createDir(grammarDirectory)
+    defer:
+      removeFile(grammarDirectory / contribution.dataArchivePath.extractFilename)
+      removeDir(grammarDirectory)
+      removeDir(dataDirectory)
+      removeDir(temporaryRoot)
+
+    writeFile(temporaryRoot / contribution.dataArchivePath, "not a ZIP archive")
     expect MatterError:
-      discard source(contribution)
+      discard zipResourceSource(temporaryRoot)(contribution)

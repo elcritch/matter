@@ -2,10 +2,11 @@
 ##
 ## This module deliberately stays outside Matter's core tokenizer. Applications
 ## supply a resource callback, so embedded resources do not require filesystem
-## access; `storedZipResourceSource` is a convenience adapter for Matter's
-## deliberately ZIP_STORED bundled archives.
+## access; `zipResourceSource` is a convenience adapter for bundled archives.
 
 import std/[options, os, sets, tables]
+
+import zippy/ziparchives
 
 import ./[engine, grammarpackages, rawgrammar]
 
@@ -25,80 +26,51 @@ type
     loadedScopeNames*: seq[string]
     unresolvedIncludes*: seq[UnresolvedGrammarInclude]
 
-  StoredZipSource = ref object
+  ZipSource = ref object
     baseDirectory: string
     archives: Table[string, Table[string, string]]
 
-proc littleEndian16(contents: string, offset: int): int =
-  if offset < 0 or offset + 2 > contents.len:
-    raise newException(MatterError, "truncated ZIP field")
-  ord(contents[offset]) or (ord(contents[offset + 1]) shl 8)
+proc extractZipMember(path, member: string): Option[string] =
+  var archive: ZipArchiveReader
+  try:
+    archive = openZipArchive(path)
+    for archiveMember in archive.walkFiles:
+      if archiveMember == member:
+        return some(archive.extractFile(member))
+  except CatchableError as error:
+    raise newException(
+      MatterError, "cannot read grammar archive " & path & ": " & error.msg
+    )
+  finally:
+    if not archive.isNil:
+      try:
+        archive.close()
+      except CatchableError as error:
+        raise newException(
+          MatterError, "cannot close grammar archive " & path & ": " & error.msg
+        )
 
-proc littleEndian32(contents: string, offset: int): uint32 =
-  if offset < 0 or offset + 4 > contents.len:
-    raise newException(MatterError, "truncated ZIP field")
-  uint32(ord(contents[offset])) or (uint32(ord(contents[offset + 1])) shl 8) or
-    (uint32(ord(contents[offset + 2])) shl 16) or
-    (uint32(ord(contents[offset + 3])) shl 24)
-
-proc readStoredZip(path: string): Table[string, string] =
-  const localHeader = "PK\x03\x04"
-  let contents =
-    try:
-      readFile(path)
-    except CatchableError as error:
-      raise newException(
-        MatterError, "cannot read grammar archive " & path & ": " & error.msg
-      )
-  var offset = 0
-  var foundLocalMember = false
-  while offset + 4 <= contents.len and contents[offset ..< offset + 4] == localHeader:
-    foundLocalMember = true
-    if offset + 30 > contents.len:
-      raise newException(MatterError, "truncated ZIP header in " & path)
-    let flags = littleEndian16(contents, offset + 6)
-    let compression = littleEndian16(contents, offset + 8)
-    let compressedSize = littleEndian32(contents, offset + 18)
-    let nameSize = littleEndian16(contents, offset + 26)
-    let extraSize = littleEndian16(contents, offset + 28)
-    if flags != 0:
-      raise newException(MatterError, "ZIP data descriptors are unsupported in " & path)
-    if compression != 0:
-      raise
-        newException(MatterError, "compressed ZIP members are unsupported in " & path)
-    let nameStart = offset + 30
-    let dataStart = nameStart + nameSize + extraSize
-    if nameStart > contents.len or dataStart > contents.len or
-        uint64(compressedSize) > uint64(contents.len - dataStart):
-      raise newException(MatterError, "truncated ZIP member in " & path)
-    let dataEnd = dataStart + int(compressedSize)
-    result[contents[nameStart ..< nameStart + nameSize]] =
-      contents[dataStart ..< dataEnd]
-    offset = dataEnd
-  if not foundLocalMember or offset + 4 > contents.len or
-      contents[offset ..< offset + 4] != "PK\x01\x02" or contents.len < 22 or
-      contents[contents.len - 22 ..< contents.len - 18] != "PK\x05\x06":
-    raise newException(MatterError, "truncated or unsupported ZIP structure in " & path)
-
-proc storedZipResourceSource*(baseDirectory = "."): GrammarResourceSource =
-  ## Return a callback that reads Matter's uncompressed bundled grammar ZIPs.
+proc zipResourceSource*(baseDirectory = "."): GrammarResourceSource =
+  ## Return a callback that reads and caches members from standard ZIP archives.
   ##
   ## `baseDirectory` contains the catalog's relative `dataArchivePath` files.
-  ## The callback caches archive members after their first read.
-  let source = StoredZipSource(
+  ## The callback caches extracted members after their first successful read.
+  let source = ZipSource(
     baseDirectory: baseDirectory, archives: initTable[string, Table[string, string]]()
   )
   result = proc(contribution: GrammarContribution): Option[string] =
     let archivePath = source.baseDirectory / contribution.dataArchivePath
-    if not source.archives.hasKey(archivePath):
-      if not fileExists(archivePath):
-        return none(string)
-      source.archives[archivePath] = readStoredZip(archivePath)
-    let archive = source.archives[archivePath]
-    if archive.hasKey(contribution.archiveMember):
-      some(archive[contribution.archiveMember])
-    else:
-      none(string)
+    if source.archives.hasKey(archivePath) and
+        source.archives[archivePath].hasKey(contribution.archiveMember):
+      return some(source.archives[archivePath][contribution.archiveMember])
+    if not fileExists(archivePath):
+      return none(string)
+    let member = extractZipMember(archivePath, contribution.archiveMember)
+    if member.isSome:
+      source.archives.mgetOrPut(archivePath, initTable[string, string]())[
+        contribution.archiveMember
+      ] = member.get
+    member
 
 proc externalScope(includeSource: string): string =
   if includeSource.len == 0 or includeSource[0] == '#' or includeSource[0] == '$':

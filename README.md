@@ -58,7 +58,7 @@ import matter/[engine, grammarloader]
 
 let registry = newRegistry()
 let loaded = registry.loadGrammarPackage(
-  storedZipResourceSource(getCurrentDir()), "text.html.markdown"
+  zipResourceSource(getCurrentDir()), "text.html.markdown"
 )
 for missing in loaded.unresolvedIncludes:
   echo missing.includingScope, " includes ", missing.includeSource,
@@ -67,9 +67,9 @@ for missing in loaded.unresolvedIncludes:
 let markdown = registry.loadGrammar("text.html.markdown")
 ```
 
-`storedZipResourceSource` reads the repository and release archives' supported
-`ZIP_STORED` members and caches each archive after its first read. Embedded or
-other archive formats can supply `GrammarResourceSource` directly. Missing
+`zipResourceSource` reads standard ZIP archives, verifies member CRCs through
+Zippy, and caches each extracted member after its first successful read.
+Embedded resources can supply `GrammarResourceSource` directly. Missing
 requested roots raise `MatterError`; missing transitive external scopes are
 reported in `unresolvedIncludes` because many upstream grammars intentionally
 refer to optional languages outside the bundled catalog. The loader reports
