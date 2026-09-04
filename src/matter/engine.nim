@@ -329,6 +329,24 @@ proc state*(lineResult: TokenizeLineResult): StateStack {.inline.} =
   ## Compatibility accessor for ``ruleStack``.
   lineResult.ruleStack
 
+proc completedRuleStack*(lineResult: TokenizeLineResult): StateStack =
+  ## Return a next-line state, rejecting an interrupted tokenization result.
+  ##
+  ## A result with `stoppedEarly` has a partial `ruleStack` at the point where
+  ## its deadline expired. It has not been normalized for the next line and
+  ## must not be used as a next-line state.
+  if lineResult.stoppedEarly:
+    raise
+      newException(MatterError, "interrupted tokenization has no completed rule stack")
+  lineResult.ruleStack
+
+proc completedRuleStack*(lineResult: TokenizeLineResult2): StateStack =
+  ## Return a next-line state, rejecting an interrupted binary-token result.
+  if lineResult.stoppedEarly:
+    raise
+      newException(MatterError, "interrupted tokenization has no completed rule stack")
+  lineResult.ruleStack
+
 proc depth*(stack: StateStack): int =
   ## Return the immutable stack depth; the root frame has depth one.
   var frame = stack
@@ -342,7 +360,9 @@ proc `==`*(a, b: StateStack): bool =
   a.rule == b.rule and a.nameScopes == b.nameScopes and a.scopes == b.scopes and
     a.hasEndRegex == b.hasEndRegex and
     (not a.hasEndRegex or a.endRegex.pattern == b.endRegex.pattern) and
-    a.isRoot == b.isRoot and a.isFirstLine == b.isFirstLine and a.parent == b.parent
+    a.enterPos == b.enterPos and a.anchorPos == b.anchorPos and a.isRoot == b.isRoot and
+    a.isFirstLine == b.isFirstLine and a.beginRuleCapturedEol == b.beginRuleCapturedEol and
+    a.parent == b.parent
 
 proc copyScopes(scopes: seq[string]): seq[string] =
   result = newSeqOfCap[string](scopes.len)
@@ -708,6 +728,22 @@ proc addToken(
 proc scopeMatches(scope, prefix: string): bool {.inline.} =
   scope == prefix or
     (scope.len > prefix.len and scope.startsWith(prefix) and scope[prefix.len] == '.')
+
+proc activeScopes*(stack: StateStack): seq[string] =
+  ## Return a defensive copy of the active outer-to-inner scope path.
+  ##
+  ## This is useful when an editor needs the scopes active on an empty line,
+  ## where no token carries the current context.
+  if not stack.isNil:
+    result = copyScopes(stack.scopes)
+
+proc hasActiveScope*(stack: StateStack, scope: string): bool =
+  ## Return whether an active scope is `scope` or one of its dotted children.
+  if stack.isNil or scope.len == 0:
+    return false
+  for active in stack.scopes:
+    if scopeMatches(active, scope):
+      return true
 
 proc firstStandardTokenType(scope: string): OptionalStandardTokenType =
   ## Match vscode-textmate's first word-boundary semantic-type match.
@@ -1274,6 +1310,10 @@ proc tokenizeLine*(
     timeLimitMs: int = 0,
 ): TokenizeLineResult =
   ## Tokenize one line. State frames are never mutated and can be reused safely.
+  ##
+  ## When `timeLimitMs` interrupts tokenization, `stoppedEarly` is true and
+  ## `ruleStack` is the partial current-line stack, not a valid next-line
+  ## state. Retry the line or use `completedRuleStack`, which rejects it.
   let started = getMonoTime()
   let scannedLine = line & "\n"
   let lineLength = line.len
