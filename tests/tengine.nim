@@ -243,6 +243,43 @@ suite "matter engine":
     check first.ruleStack.depth == 2
     check second.tokens.anyIt("keyword.afterWhile" in it.scopes)
 
+  test "distinguishes completed states whose anchors change next-line matching":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [{
+        "begin": ">|\\n", "while": "\\Gx", "name": "meta.continued",
+        "patterns": [{ "match": "y", "name": "keyword.afterWhile" }]
+      }] }
+    """
+    )
+    let ordinaryBegin = tokenizeLine(tested, ">")
+    let eolBegin = tokenizeLine(tested, "")
+    check ordinaryBegin.ruleStack != eolBegin.ruleStack
+
+    let ordinaryNext = tokenizeLine(tested, "xy", ordinaryBegin.ruleStack)
+    let eolNext = tokenizeLine(tested, "xy", eolBegin.ruleStack)
+    check not ordinaryNext.tokens.anyIt("keyword.afterWhile" in it.scopes)
+    check eolNext.tokens.anyIt("keyword.afterWhile" in it.scopes)
+
+  test "exposes active scopes without exposing mutable stack storage":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [{
+        "begin": "```", "end": "```", "name": "markup.fenced_code.block.markdown"
+      }] }
+    """
+    )
+    let first = tokenizeLine(tested, "```")
+    let scopes = first.ruleStack.activeScopes
+    check scopes == @["source.test", "markup.fenced_code.block.markdown"]
+    check first.ruleStack.hasActiveScope("markup.fenced_code")
+    check not first.ruleStack.hasActiveScope("markup.fenced_codeX")
+    check not first.ruleStack.hasActiveScope("markup.quote")
+    check not cast[StateStack](nil).hasActiveScope("markup.fenced_code")
+    var changed = scopes
+    changed[^1] = "changed.scope"
+    check first.ruleStack.hasActiveScope("markup.fenced_code")
+
   test "keeps the first left injection and supports host registration":
     let registry = newRegistry()
     registry.addGrammar(
@@ -301,6 +338,17 @@ suite "matter engine":
     let result = tokenizeLine(tested, "x".repeat(100_000), timeLimitMs = 1)
     check result.stoppedEarly
     check result.ruleStack.depth == 1
+    expect MatterError:
+      discard result.completedRuleStack
+    let binary = tokenizeLine2(tested, "x".repeat(100_000), timeLimitMs = 1)
+    check binary.stoppedEarly
+    expect MatterError:
+      discard binary.completedRuleStack
+
+    let complete = tokenizeLine(tested, "x")
+    check complete.completedRuleStack == complete.ruleStack
+    let completeBinary = tokenizeLine2(tested, "x")
+    check completeBinary.completedRuleStack == completeBinary.ruleStack
 
   test "the default time limit is unlimited":
     let tested = grammar(

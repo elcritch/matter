@@ -45,6 +45,36 @@ from its archive. The catalog includes archive and source VSIX SHA-256 values;
 [`data/grammars/NOTICES.md`](data/grammars/NOTICES.md) records the complete
 redistribution notice and provenance list.
 
+### Load bundled grammar packages
+
+The optional `matter/grammarloader` module registers a requested catalogued
+grammar, its same-package support and injection grammars, and available
+external grammar includes. It is deliberately not re-exported from `matter`:
+the tokenizer itself does not perform filesystem or archive I/O.
+
+```nim
+import std/os
+import matter/[engine, grammarloader]
+
+let registry = newRegistry()
+let loaded = registry.loadGrammarPackage(
+  zipResourceSource(getCurrentDir()), "text.html.markdown"
+)
+for missing in loaded.unresolvedIncludes:
+  echo missing.includingScope, " includes ", missing.includeSource,
+    " (missing ", missing.externalScope, ")"
+
+let markdown = registry.loadGrammar("text.html.markdown")
+```
+
+`zipResourceSource` reads standard ZIP archives, verifies member CRCs through
+Zippy, and caches each extracted member after its first successful read.
+Embedded resources can supply `GrammarResourceSource` directly. Missing
+requested roots raise `MatterError`; missing transitive external scopes are
+reported in `unresolvedIncludes` because many upstream grammars intentionally
+refer to optional languages outside the bundled catalog. The loader reports
+missing external scopes, not missing `scope#repository-member` targets.
+
 ### Download grammar archives
 
 Every Matter release tag named `v<major>.<minor>.<patch>` publishes every
@@ -128,6 +158,24 @@ that argument (or pass `nil`) to start a new document. Successful results keep
 a root `ruleStack`, even after all nested rules close. Each token uses a
 half-open UTF-8 byte range, so the end offset is suitable for Nim string
 slicing.
+
+When using a positive `timeLimitMs`, check `stoppedEarly` before reusing a
+result's `ruleStack`: an interrupted result contains the partial current-line
+state and is not normalized for the next line. `completedRuleStack` returns a
+safe next-line state or raises `MatterError` for an interrupted result. The
+limit is cooperative between tokenization iterations, rather than a strict
+per-regex latency bound.
+
+For empty lines, query the state rather than the previous line's final token:
+
+```nim
+let state = first.completedRuleStack
+if state.hasActiveScope("markup.fenced_code"):
+  echo state.activeScopes
+```
+
+`activeScopes` returns a defensive outer-to-inner scope copy; `hasActiveScope`
+matches complete dotted scope prefixes.
 
 ## Current scope
 
