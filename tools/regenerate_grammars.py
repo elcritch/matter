@@ -25,6 +25,8 @@ MANIFEST_PATH = ROOT / "tools" / "grammar_manifest.json"
 DATA_DIR = ROOT / "data" / "grammars"
 NIM_PATH = ROOT / "src" / "matter" / "grammarpackages.nim"
 ZIP_DATE = (1980, 1, 1, 0, 0, 0)
+ZIP_COMPRESSION = zipfile.ZIP_DEFLATED
+ZIP_COMPRESSION_LEVEL = 9
 
 
 def package_id(package: dict) -> str:
@@ -88,7 +90,7 @@ def member_name(grammar_path: str) -> str:
 
 def fixed_info(name: str) -> zipfile.ZipInfo:
   info = zipfile.ZipInfo(name, date_time=ZIP_DATE)
-  info.compress_type = zipfile.ZIP_STORED
+  info.compress_type = ZIP_COMPRESSION
   info.external_attr = 0o100644 << 16
   info.create_system = 3
   return info
@@ -126,9 +128,12 @@ def write_archive(package: dict, source: Path, destination: Path) -> dict:
     }
     members.update({member: source_archive.read(original) for member, original in needed})
   destination.parent.mkdir(parents=True, exist_ok=True)
-  with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_STORED) as archive:
+  with zipfile.ZipFile(destination, "w") as archive:
     for name in sorted(members):
-      archive.writestr(fixed_info(name), members[name])
+      archive.writestr(
+        fixed_info(name), members[name],
+        compress_type=ZIP_COMPRESSION, compresslevel=ZIP_COMPRESSION_LEVEL,
+      )
   return provenance
 
 
@@ -369,9 +374,9 @@ def verify(manifest: dict, catalog_path: Path = DATA_DIR / "catalog.json") -> No
       if members != sorted(members) or members != package["archiveMembers"]:
         raise RuntimeError(f"unexpected archive members: {archive}")
       for info in source.infolist():
-        if (info.compress_type != zipfile.ZIP_STORED or info.date_time != ZIP_DATE or
+        if (info.compress_type != ZIP_COMPRESSION or info.date_time != ZIP_DATE or
             info.external_attr >> 16 != 0o100644):
-          raise RuntimeError(f"archive is not deterministic ZIP_STORED: {archive}")
+          raise RuntimeError(f"archive is not deterministic ZIP_DEFLATED: {archive}")
       if "LICENSE" not in members or "package.json" not in members:
         raise RuntimeError(f"archive lacks attribution: {archive}")
       for grammar in package["grammars"]:

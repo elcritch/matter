@@ -24,7 +24,7 @@ nim r tests/tmatter.nim
 `grammarpackages` contains pinned source, license, archive, and direct-download
 metadata for all 35 syntax modes in Moe at commit
 `0dcc33b87cf672e727c54d39b48bd81cc68e6c2c`, plus additional catalogued
-grammars. The stripped, ordinary ZIP archives live under `data/grammars/`;
+grammars. The stripped, DEFLATE-compressed ZIP archives live under `data/grammars/`;
 they retain only allowlisted TextMate grammar files plus the source package
 manifest, license, and provenance. They never need `npx` to download or use.
 
