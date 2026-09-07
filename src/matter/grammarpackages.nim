@@ -12,6 +12,8 @@ type
     name*: string
     version*: string
     targetPlatform*: string
+    sourceKind*: string
+    sourceArchiveSha256*: string
     sourceVsixSha256*: string
     licenseId*: string
     repositoryUrl*: string
@@ -45,6 +47,9 @@ const
     name: "cpp",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "b70b8b007d21c89f929c32eaa89cf15e710723e091be682418c125cc93733c36",
     sourceVsixSha256: "b70b8b007d21c89f929c32eaa89cf15e710723e091be682418c125cc93733c36",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/cpp",
@@ -59,6 +64,9 @@ const
     name: "csharp",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "384dd3d44b3ebb8ff377c4bfa7a4a2d500a48c22fa30e4697b23d3e2158192a7",
     sourceVsixSha256: "384dd3d44b3ebb8ff377c4bfa7a4a2d500a48c22fa30e4697b23d3e2158192a7",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/csharp",
@@ -73,6 +81,9 @@ const
     name: "diff",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "ce799c16ac50165bbf2a07fbb353f7a25f3df9d52f91b75dcfe4017d56389335",
     sourceVsixSha256: "ce799c16ac50165bbf2a07fbb353f7a25f3df9d52f91b75dcfe4017d56389335",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/diff",
@@ -87,6 +98,9 @@ const
     name: "docker",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "5de2f31e7e8e9c64b17d0b2eb915a5c14653904376a06d07f2229890fe296078",
     sourceVsixSha256: "5de2f31e7e8e9c64b17d0b2eb915a5c14653904376a06d07f2229890fe296078",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/docker",
@@ -101,6 +115,9 @@ const
     name: "git-base",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "956c41e4e8377a6b113a6a64fcd5308deaad44a827288f6bfcd5cf1c83037483",
     sourceVsixSha256: "956c41e4e8377a6b113a6a64fcd5308deaad44a827288f6bfcd5cf1c83037483",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/git-base",
@@ -115,6 +132,9 @@ const
     name: "go",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "af091f9e53479ccd5e3dcee8b770973c7a1cc40d70afaf3aa1066d112a95a400",
     sourceVsixSha256: "af091f9e53479ccd5e3dcee8b770973c7a1cc40d70afaf3aa1066d112a95a400",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/go",
@@ -128,6 +148,9 @@ const
     name: "html",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "193c7d03374f3f8b71f01dabae05c93b86069b28521cbb18fad0beab6eb42732",
     sourceVsixSha256: "193c7d03374f3f8b71f01dabae05c93b86069b28521cbb18fad0beab6eb42732",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/html",
@@ -142,6 +165,9 @@ const
     name: "java",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "885469b3e7da89f8b8d0eae58b9ce065a59e67d84f507855460f7d6c9a67b17b",
     sourceVsixSha256: "885469b3e7da89f8b8d0eae58b9ce065a59e67d84f507855460f7d6c9a67b17b",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/java",
@@ -156,6 +182,9 @@ const
     name: "javascript",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "df55b5174c57ec057d78d4b9ddd225cc36095b6fc845f1a0df87f1e13dfb64b2",
     sourceVsixSha256: "df55b5174c57ec057d78d4b9ddd225cc36095b6fc845f1a0df87f1e13dfb64b2",
     licenseId: "MIT",
     repositoryUrl:
@@ -171,6 +200,9 @@ const
     name: "latex",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "b5b1ef21dfd8ef6e65a89549225ee767ab4a4a1544082e5a159e95d03f78cfa6",
     sourceVsixSha256: "b5b1ef21dfd8ef6e65a89549225ee767ab4a4a1544082e5a159e95d03f78cfa6",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/latex",
@@ -185,6 +217,9 @@ const
     name: "log",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "cc3908ef8cf97a86dbed68c1bf2729ef17e18ff691aa8294d330bac45733da35",
     sourceVsixSha256: "cc3908ef8cf97a86dbed68c1bf2729ef17e18ff691aa8294d330bac45733da35",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/log",
@@ -199,6 +234,9 @@ const
     name: "lua",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "90a58f6cfe76fcd391d9fe672d339f6a275f13ec91ce10316d6befe41a78b57e",
     sourceVsixSha256: "90a58f6cfe76fcd391d9fe672d339f6a275f13ec91ce10316d6befe41a78b57e",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/lua",
@@ -213,6 +251,9 @@ const
     name: "markdown",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "53591b889e8941db812f263d8e5eaa34ec83718e399ecd7a1e178410bd3877a9",
     sourceVsixSha256: "53591b889e8941db812f263d8e5eaa34ec83718e399ecd7a1e178410bd3877a9",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/markdown",
@@ -227,6 +268,9 @@ const
     name: "rust",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "23dd92f554f968fbeefe9976fdb9996c35b2152cf0778cf74bd1019a5ed4b8eb",
     sourceVsixSha256: "23dd92f554f968fbeefe9976fdb9996c35b2152cf0778cf74bd1019a5ed4b8eb",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/rust",
@@ -241,6 +285,9 @@ const
     name: "shellscript",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "b60e2bf7de39524bf0608653583b5e0360fe78e3ec59e94f2bd1b9255e89c38d",
     sourceVsixSha256: "b60e2bf7de39524bf0608653583b5e0360fe78e3ec59e94f2bd1b9255e89c38d",
     licenseId: "MIT",
     repositoryUrl:
@@ -256,6 +303,9 @@ const
     name: "typescript",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "493019c0375ad6d46a8811e041d70f68eb57ed5e5a9698125e4691eaf6f2d8fc",
     sourceVsixSha256: "493019c0375ad6d46a8811e041d70f68eb57ed5e5a9698125e4691eaf6f2d8fc",
     licenseId: "MIT",
     repositoryUrl:
@@ -271,6 +321,9 @@ const
     name: "xml",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "34024416f2583fa48f7f1a8ab7f30b37986eea54d9a7a6be1f25aff8507dd0a1",
     sourceVsixSha256: "34024416f2583fa48f7f1a8ab7f30b37986eea54d9a7a6be1f25aff8507dd0a1",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/xml",
@@ -285,6 +338,9 @@ const
     name: "yaml",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "1c60f93adad36f20de0696bc75f8b3829f3fc4c760f4d8022ec9f934436bbeb0",
     sourceVsixSha256: "1c60f93adad36f20de0696bc75f8b3829f3fc4c760f4d8022ec9f934436bbeb0",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/yaml",
@@ -299,6 +355,9 @@ const
     name: "json",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "53667e2cc9875c6872f8d7eff75314c46f8c0a30398efd9e7bec437b7cb928c3",
     sourceVsixSha256: "53667e2cc9875c6872f8d7eff75314c46f8c0a30398efd9e7bec437b7cb928c3",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/json",
@@ -313,6 +372,9 @@ const
     name: "python",
     version: "1.95.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "37c2a0cdfa668bd4dc37265d7d172300a20350098651b1843ee220a30c5e2d88",
     sourceVsixSha256: "37c2a0cdfa668bd4dc37265d7d172300a20350098651b1843ee220a30c5e2d88",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/python",
@@ -327,6 +389,9 @@ const
     name: "nimvscode",
     version: "0.1.26",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "e0ac9d990c992f1937bb6f7a81d7a2bc68cf9484563ee9105bba0980472768ea",
     sourceVsixSha256: "e0ac9d990c992f1937bb6f7a81d7a2bc68cf9484563ee9105bba0980472768ea",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/saem/vscode-nim",
@@ -341,6 +406,9 @@ const
     name: "vscode-fish",
     version: "1.0.49",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "e15419680986f2c30b6b0f25e9a4067ca4ee158eff797b771e0f73f7e534751c",
     sourceVsixSha256: "e15419680986f2c30b6b0f25e9a4067ca4ee158eff797b771e0f73f7e534751c",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/bmalehorn/vscode-fish",
@@ -355,6 +423,9 @@ const
     name: "language-haskell",
     version: "3.8.0",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "c031af18a23e603c246d8295d228e7077f8dc163d902ec0b378329155dfb285b",
     sourceVsixSha256: "c031af18a23e603c246d8295d228e7077f8dc163d902ec0b378329155dfb285b",
     licenseId: "BSD-3-Clause",
     repositoryUrl: "https://github.com/haskell/language-haskell",
@@ -369,6 +440,9 @@ const
     name: "hyprlang-vscode",
     version: "0.0.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "6678df68388684886957c911030f10b5ff749d72ffe319c5c259ca6f4d6c7d29",
     sourceVsixSha256: "6678df68388684886957c911030f10b5ff749d72ffe319c5c259ca6f4d6c7d29",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/TheFireBlast/hyprlang-vscode",
@@ -383,6 +457,9 @@ const
     name: "even-better-toml",
     version: "0.21.2",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "f3dc44f1c551edef397a79f0f8c5db4066c6a547e210b5c3cec4400bf173b008",
     sourceVsixSha256: "f3dc44f1c551edef397a79f0f8c5db4066c6a547e210b5c3cec4400bf173b008",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/tamasfe/taplo",
@@ -397,6 +474,9 @@ const
     name: "better-lisp-syntax",
     version: "0.0.2",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "068ef8c3cfca0b1e09fa8af50d60533ecf4ef08ba51e721ca0f54434526f7e2d",
     sourceVsixSha256: "068ef8c3cfca0b1e09fa8af50d60533ecf4ef08ba51e721ca0f54434526f7e2d",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/jeff-hykin/better-lisp-syntax",
@@ -411,6 +491,9 @@ const
     name: "astro-vscode",
     version: "2.16.20",
     targetPlatform: "alpine-arm64",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "64fb9007bcfeb5cd64e63aaaecea99ab9a7d26ba6c41b3c1b8130536b304c3ce",
     sourceVsixSha256: "64fb9007bcfeb5cd64e63aaaecea99ab9a7d26ba6c41b3c1b8130536b304c3ce",
     licenseId: "MIT",
     repositoryUrl:
@@ -426,6 +509,9 @@ const
     name: "tcl",
     version: "0.4.3",
     targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "1d380f8f2e9e4f7cc3756656e2b0d7338bc5e67667a61ccdbff4253b7f70ae7d",
     sourceVsixSha256: "1d380f8f2e9e4f7cc3756656e2b0d7338bc5e67667a61ccdbff4253b7f70ae7d",
     licenseId: "MIT",
     repositoryUrl: "https://github.com/bitwisecook/vscode-tcl",
@@ -435,6 +521,41 @@ const
     dataArchivePath: "data/grammars/bitwisecook-tcl-0.4.3.zip",
     archiveSha256: "73c2d0d3d8a071459977d5bc196fecb6f3848046e7a222b083545c978069a13c",
   )
+  terraformSyntaxPackage* = SourcePackage(
+    namespace: "hashicorp",
+    name: "syntax",
+    version: "0.7.1",
+    targetPlatform: "",
+    sourceKind: "github-archive",
+    sourceArchiveSha256:
+      "5dc1b0b2bb2e67afa2e9f78d1b019ee08d4cb5f118da20be7ee0579a8d66df68",
+    sourceVsixSha256: "",
+    licenseId: "MPL-2.0",
+    repositoryUrl: "https://github.com/hashicorp/syntax/tree/v0.7.1",
+    licenseUrl: "https://github.com/hashicorp/syntax/blob/v0.7.1/LICENSE",
+    downloadUrl: "https://github.com/hashicorp/syntax/archive/refs/tags/v0.7.1.zip",
+    dataArchivePath: "data/grammars/hashicorp-syntax-0.7.1.zip",
+    archiveSha256: "5e54b5df5de4c428ad78fa7a7daa44d3a94d297deae2ae1c5b031eb26a74cc33",
+  )
+  terraformPlanPackage* = SourcePackage(
+    namespace: "aryairani",
+    name: "tofu-plan-highlight",
+    version: "0.1.0",
+    targetPlatform: "",
+    sourceKind: "github-archive",
+    sourceArchiveSha256:
+      "080508d09e4d4ec936b2601a6c9b5b79014a1a1d13a759e5204bbbbd5302b757",
+    sourceVsixSha256: "",
+    licenseId: "MIT",
+    repositoryUrl:
+      "https://github.com/aryairani/tofu-plan-highlight/tree/0edf2419e1323bd96db23712a960d2990dd3a323",
+    licenseUrl:
+      "https://github.com/aryairani/tofu-plan-highlight/blob/0edf2419e1323bd96db23712a960d2990dd3a323/LICENSE",
+    downloadUrl:
+      "https://github.com/aryairani/tofu-plan-highlight/archive/0edf2419e1323bd96db23712a960d2990dd3a323.zip",
+    dataArchivePath: "data/grammars/aryairani-tofu-plan-highlight-0.1.0.zip",
+    archiveSha256: "e59e52d21880f3116259f72575cf5bde8ef0d210b3fdb35a78d55872ba12d981",
+  )
 
   knownPackages* = [
     vscodeCppPackage, vscodeCsharpPackage, vscodeDiffPackage, vscodeDockerPackage,
@@ -443,7 +564,8 @@ const
     vscodeMarkdownPackage, vscodeRustPackage, vscodeShellscriptPackage,
     vscodeTypescriptPackage, vscodeXmlPackage, vscodeYamlPackage, vscodeJsonPackage,
     vscodePythonPackage, nimVscodePackage, fishPackage, haskellPackage, hyprlangPackage,
-    tomlPackage, lispPackage, astroPackage, tclPackage,
+    tomlPackage, lispPackage, astroPackage, tclPackage, terraformSyntaxPackage,
+    terraformPlanPackage,
   ]
 
   cGrammar* = GrammarContribution(
@@ -976,6 +1098,26 @@ const
     dataArchivePath: "data/grammars/bitwisecook-tcl-0.4.3.zip",
     isPrimary: true,
   )
+  terraformGrammar* = GrammarContribution(
+    displayName: "Terraform",
+    languageId: "terraform",
+    scopeName: "source.hcl.terraform",
+    grammarPath: "./syntaxes/terraform.tmGrammar.json",
+    archiveMember: "grammar/syntaxes/terraform.tmGrammar.json",
+    packageKey: "hashicorp.syntax",
+    dataArchivePath: "data/grammars/hashicorp-syntax-0.7.1.zip",
+    isPrimary: true,
+  )
+  terraformPlanGrammar* = GrammarContribution(
+    displayName: "OpenTofu / Terraform Plan",
+    languageId: "tofu-plan",
+    scopeName: "source.tofu-plan",
+    grammarPath: "./syntaxes/tofu-plan.tmLanguage.json",
+    archiveMember: "grammar/syntaxes/tofu-plan.tmLanguage.json",
+    packageKey: "aryairani.tofu-plan-highlight",
+    dataArchivePath: "data/grammars/aryairani-tofu-plan-highlight-0.1.0.zip",
+    isPrimary: true,
+  )
 
   knownGrammars* = [
     cGrammar, cppEmbeddedMacroGrammar, cppGrammar, cPlatformGrammar, csharpGrammar,
@@ -989,6 +1131,7 @@ const
     nimbleGrammar, fishGrammar, fishCodeblockGrammar, haskellGrammar, cabalGrammar,
     hyprlangGrammar, tomlGrammar, tomlFrontmatterGrammar, tomlMarkdownGrammar,
     lispGrammar, astroGrammar, astroMarkdownGrammar, astroMdxGrammar, tclGrammar,
+    terraformGrammar, terraformPlanGrammar,
   ]
 
   moeGrammarMappings* = [
@@ -1051,7 +1194,11 @@ func vsixDownloadUrl*(namespace, name, version: string): string =
   versionMetadataUrl(namespace, name, version) & "/file/" & extension
 
 func vsixDownloadUrl*(package: SourcePackage): string =
-  ## Returns this package's exact pinned VSIX URL, including target platforms.
+  ## Returns this package's pinned URL when its source is a VSIX.
+  package.downloadUrl
+
+func sourceArchiveUrl*(package: SourcePackage): string =
+  ## Returns this package's exact pinned upstream source archive URL.
   package.downloadUrl
 
 func findGrammar*(scopeName: string): Option[GrammarContribution] =

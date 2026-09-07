@@ -23,16 +23,16 @@ nim r tests/tmatter.nim
 
 `grammarpackages` contains pinned source, license, archive, and direct-download
 metadata for all 35 syntax modes in Moe at commit
-`0dcc33b87cf672e727c54d39b48bd81cc68e6c2c`. The stripped, ordinary ZIP
-archives live under `data/grammars/`; they retain only allowlisted TextMate
-grammar files plus the source package manifest, license, and provenance. They
-never need `npx` to download or use.
+`0dcc33b87cf672e727c54d39b48bd81cc68e6c2c`, plus additional catalogued
+grammars. The stripped, ordinary ZIP archives live under `data/grammars/`;
+they retain only allowlisted TextMate grammar files plus the source package
+manifest, license, and provenance. They never need `npx` to download or use.
 
 ```nim
 import matter
 
 let grammarPackage = vscodeCppPackage
-let downloadUrl = grammarPackage.vsixDownloadUrl()
+let downloadUrl = grammarPackage.sourceArchiveUrl()
 echo downloadUrl
 # https://open-vsx.org/api/vscode/cpp/1.95.3/file/vscode.cpp-1.95.3.vsix
 for grammar in importedGrammars("cpp"):
@@ -41,9 +41,20 @@ for grammar in importedGrammars("cpp"):
 ```
 
 `importedGrammars("cpp")` yields the primary grammar and the support grammars
-from its archive. The catalog includes archive and source VSIX SHA-256 values;
+from its archive. The catalog includes Matter and upstream archive SHA-256 values;
 [`data/grammars/NOTICES.md`](data/grammars/NOTICES.md) records the complete
 redistribution notice and provenance list.
+
+Terraform configuration and rendered plan output are available independently:
+
+```nim
+echo terraformGrammar.scopeName     # source.hcl.terraform
+echo terraformPlanGrammar.scopeName # source.tofu-plan
+```
+
+`terraformPlanGrammar` targets human-readable output rendered with `-no-color`.
+An opaque plan created by `terraform plan -out=tfplan` must be rendered to text
+first, for example with `terraform show -no-color tfplan`.
 
 ### Load bundled grammar packages
 
@@ -81,8 +92,7 @@ Every Matter release tag named `v<major>.<minor>.<patch>` publishes every
 packaged grammar ZIP as a GitHub Release asset. Select a specific Matter
 release when reproducibility matters; the `latest` URL intentionally follows
 whichever release GitHub marks latest. The upstream choice is instead the exact
-pinned source VSIX used to build the ZIP, so it is a VSIX—not Matter's stripped
-grammar archive.
+pinned VSIX or repository archive used to build Matter's stripped grammar ZIP.
 
 ```nim
 import std/options
@@ -95,13 +105,13 @@ if found.isSome:
   # https://github.com/elcritch/matter/releases/download/v0.2.1/vscode-cpp-1.95.3.zip
   echo cpp.githubLatestReleaseAssetUrl()
   # https://github.com/elcritch/matter/releases/latest/download/vscode-cpp-1.95.3.zip
-  echo cpp.upstreamVsixUrl()
+  echo cpp.upstreamArchiveUrl()
   # https://open-vsx.org/api/vscode/cpp/1.95.3/file/vscode.cpp-1.95.3.vsix
 
   # Equivalent source selection through one helper:
   echo cpp.downloadUrl(MatterRelease, "v0.2.1") # Exact Matter ZIP
   echo cpp.downloadUrl(MatterRelease)           # Latest Matter ZIP
-  echo cpp.downloadUrl(Upstream)                # Pinned upstream VSIX
+  echo cpp.downloadUrl(Upstream)                # Pinned upstream source archive
 ```
 
 `grammarReleaseAssets` contains one `GrammarReleaseAsset` per packaged ZIP;
@@ -120,8 +130,8 @@ The generator invokes `nph` itself so the generated Nim catalog remains formatte
 nim regenerateGrammars
 ```
 
-The task rejects a downloaded VSIX whose pinned SHA-256 differs. Verify a clean
-checkout without network access with:
+The task rejects a downloaded source archive whose pinned SHA-256 differs.
+Verify a clean checkout without network access with:
 
 ```sh
 nim verifyGrammars

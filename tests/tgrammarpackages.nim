@@ -12,8 +12,8 @@ const moeModes = [
 
 suite "grammar package catalog":
   test "exposes pinned source and archive metadata":
-    check knownPackages.len == 28
-    check knownGrammars.len == 53
+    check knownPackages.len == 30
+    check knownGrammars.len == 55
     check nimVscodePackage.extensionId() == "nimsaem.nimvscode"
     check vscodeCppPackage.version == "1.95.3"
     check tomlPackage.licenseId == "MIT"
@@ -24,13 +24,25 @@ suite "grammar package catalog":
       "astro-build.astro-vscode-2.16.20@alpine-arm64.vsix"
     check tclPackage.vsixDownloadUrl() ==
       "https://github.com/bitwisecook/vscode-tcl/releases/download/0.4.3/tcl-0.4.3.vsix"
+    check terraformSyntaxPackage.sourceKind == "github-archive"
+    check terraformSyntaxPackage.licenseId == "MPL-2.0"
+    check terraformSyntaxPackage.sourceArchiveUrl() ==
+      "https://github.com/hashicorp/syntax/archive/refs/tags/v0.7.1.zip"
+    check terraformPlanPackage.sourceKind == "github-archive"
+    check terraformPlanPackage.licenseId == "MIT"
+    check terraformGrammar.scopeName == "source.hcl.terraform"
+    check terraformPlanGrammar.scopeName == "source.tofu-plan"
     for package in knownPackages:
       check package.licenseId.len > 0
       check package.repositoryUrl.startsWith("https://")
       check package.licenseUrl.startsWith("https://")
       check package.downloadUrl.startsWith("https://")
       check package.dataArchivePath.startsWith("data/grammars/")
-      check package.sourceVsixSha256.len == 64
+      check package.sourceArchiveSha256.len == 64
+      if package.sourceKind == "vsix":
+        check package.sourceVsixSha256 == package.sourceArchiveSha256
+      else:
+        check package.sourceVsixSha256.len == 0
       check package.archiveSha256.len == 64
 
   test "maps every current Moe source mode":

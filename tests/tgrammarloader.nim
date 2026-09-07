@@ -58,6 +58,23 @@ suite "grammar package loader":
     check "source.nimble" in loaded.loadedScopeNames
     discard registry.loadGrammar("source.nim")
 
+  test "loads bundled Terraform source and plan grammars":
+    let root = currentSourcePath.parentDir.parentDir
+
+    let terraformRegistry = newRegistry()
+    discard terraformRegistry.loadGrammarPackage(
+      zipResourceSource(root), "source.hcl.terraform"
+    )
+    let terraform = terraformRegistry.loadGrammar("source.hcl.terraform")
+    let sourceLine = terraform.tokenizeLine("resource \"example\" \"main\" {")
+    check sourceLine.tokens.anyIt("source.hcl.terraform" in it.scopes)
+
+    let planRegistry = newRegistry()
+    discard planRegistry.loadGrammarPackage(zipResourceSource(root), "source.tofu-plan")
+    let plan = planRegistry.loadGrammar("source.tofu-plan")
+    let planLine = plan.tokenizeLine("  + name = \"example\"")
+    check planLine.tokens.anyIt("markup.inserted.marker.tofu-plan" in it.scopes)
+
   test "loads contributed injection grammars from a package":
     let root = currentSourcePath.parentDir.parentDir
     let registry = newRegistry()

@@ -18,7 +18,11 @@ suite "grammar release asset metadata":
         check asset.get.version == package["version"].getStr()
         check asset.get.assetName == archivePath.rsplit('/', maxsplit = 1)[^1]
         check asset.get.archiveSha256 == package["archiveSha256"].getStr()
-        check asset.get.upstreamVsixUrl() == package["downloadUrl"].getStr()
+        check asset.get.upstreamArchiveUrl() == package["downloadUrl"].getStr()
+        if asset.get.sourceKind == "vsix":
+          check asset.get.upstreamVsixUrl() == package["downloadUrl"].getStr()
+        else:
+          check asset.get.upstreamVsixUrl().len == 0
         check asset.get.archiveSha256.len == 64
     check findGrammarReleaseAsset("missing.grammar").isNone
 
@@ -31,7 +35,7 @@ suite "grammar release asset metadata":
     check asset.downloadUrl(MatterRelease, "v0.2.1") ==
       asset.githubReleaseAssetUrl("v0.2.1")
     check asset.downloadUrl(MatterRelease) == asset.githubLatestReleaseAssetUrl()
-    check asset.downloadUrl(Upstream) == asset.upstreamVsixUrl()
+    check asset.downloadUrl(Upstream) == asset.upstreamArchiveUrl()
 
   test "escapes GitHub release URL path segments":
     let asset = GrammarReleaseAsset(assetName: "grammar file#1.zip")

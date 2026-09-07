@@ -2,8 +2,8 @@
 """Build Matter's small, reproducible TextMate grammar archives.
 
 The JSON manifest is deliberately the only hand-maintained catalog.  This tool
-downloads the pinned VSIX files without npm/npx, extracts only its allowlisted
-grammars, and writes both the archive catalog and Nim API generated from it.
+downloads pinned VSIX or source ZIP archives without npm/npx, extracts only
+their allowlisted grammars, and writes the archive catalog and generated Nim API.
 """
 
 from __future__ import annotations
@@ -51,14 +51,34 @@ def source_url(package: dict) -> str:
   )
 
 
-def license_member(names: list[str]) -> str:
+def source_kind(package: dict) -> str:
+  return package.get("sourceKind", "vsix")
+
+
+def source_root(package: dict) -> str:
+  return package.get("sourceRoot", "extension").rstrip("/")
+
+
+def source_member(package: dict, relative_path: str) -> str:
+  return source_root(package) + "/" + relative_path.removeprefix("./")
+
+
+def source_checksum(manifest: dict, package: dict) -> str:
+  source_file = package["sourceFile"]
+  if source_kind(package) == "vsix":
+    return manifest["sourceVsixSha256"][source_file]
+  return manifest["sourceArchiveSha256"][source_file]
+
+
+def license_member(package: dict, names: list[str]) -> str:
+  root = source_root(package) + "/"
   matches = [
     name for name in names
-    if name.startswith("extension/") and "/" not in name.removeprefix("extension/") and
+    if name.startswith(root) and "/" not in name.removeprefix(root) and
     Path(name).name.lower().startswith("license")
   ]
   if not matches:
-    raise RuntimeError("VSIX has no license file")
+    raise RuntimeError(f"{package_id(package)} source archive has no license file")
   return sorted(matches)[0]
 
 
@@ -75,13 +95,13 @@ def fixed_info(name: str) -> zipfile.ZipInfo:
 
 
 def write_archive(package: dict, source: Path, destination: Path) -> dict:
-  with zipfile.ZipFile(source) as vsix:
-    names = vsix.namelist()
-    package_json = "extension/package.json"
+  with zipfile.ZipFile(source) as source_archive:
+    names = source_archive.namelist()
+    package_json = source_member(package, "package.json")
     if package_json not in names:
-      raise RuntimeError("VSIX has no extension/package.json")
-    license_file = license_member(names)
-    needed = [(member_name(item[4]), "extension/" + item[4].removeprefix("./"))
+      raise RuntimeError(f"{package_id(package)} source archive has no package.json")
+    license_file = license_member(package, names)
+    needed = [(member_name(item[4]), source_member(package, item[4]))
               for item in package["grammars"]]
     missing = [original for _, original in needed if original not in names]
     if missing:
@@ -94,14 +114,17 @@ def write_archive(package: dict, source: Path, destination: Path) -> dict:
       "repositoryUrl": package["repositoryUrl"],
       "licenseId": package["licenseId"],
       "licenseUrl": package["licenseUrl"],
-      "sourceVsixMember": {member: original for member, original in needed},
     }
+    provenance_member = (
+      "sourceVsixMember" if source_kind(package) == "vsix" else "sourceArchiveMember"
+    )
+    provenance[provenance_member] = {member: original for member, original in needed}
     members = {
-      "LICENSE": vsix.read(license_file),
-      "package.json": vsix.read(package_json),
+      "LICENSE": source_archive.read(license_file),
+      "package.json": source_archive.read(package_json),
       "PROVENANCE.json": (json.dumps(provenance, indent=2, sort_keys=True) + "\n").encode(),
     }
-    members.update({member: vsix.read(original) for member, original in needed})
+    members.update({member: source_archive.read(original) for member, original in needed})
   destination.parent.mkdir(parents=True, exist_ok=True)
   with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_STORED) as archive:
     for name in sorted(members):
@@ -119,12 +142,16 @@ def render_nim(catalog: dict) -> str:
               for package in packages for grammar in package["grammars"]]
   package_constants = []
   for package in packages:
+    kind = source_kind(package)
+    archive_sha256 = source_checksum(catalog, package)
     fields = [
       f"namespace: {nim_string(package['namespace'])}",
       f"name: {nim_string(package['name'])}",
       f"version: {nim_string(package['version'])}",
       f"targetPlatform: {nim_string(package.get('targetPlatform', ''))}",
-      f"sourceVsixSha256: {nim_string(catalog['sourceVsixSha256'][package['sourceFile']])}",
+      f"sourceKind: {nim_string(kind)}",
+      f"sourceArchiveSha256: {nim_string(archive_sha256)}",
+      f"sourceVsixSha256: {nim_string(archive_sha256 if kind == 'vsix' else '')}",
       f"licenseId: {nim_string(package['licenseId'])}",
       f"repositoryUrl: {nim_string(package['repositoryUrl'])}",
       f"licenseUrl: {nim_string(package['licenseUrl'])}",
@@ -166,6 +193,8 @@ type
     name*: string
     version*: string
     targetPlatform*: string
+    sourceKind*: string
+    sourceArchiveSha256*: string
     sourceVsixSha256*: string
     licenseId*: string
     repositoryUrl*: string
@@ -220,7 +249,11 @@ func vsixDownloadUrl*(namespace, name, version: string): string =
   versionMetadataUrl(namespace, name, version) & "/file/" & extension
 
 func vsixDownloadUrl*(package: SourcePackage): string =
-  ## Returns this package's exact pinned VSIX URL, including target platforms.
+  ## Returns this package's pinned URL when its source is a VSIX.
+  package.downloadUrl
+
+func sourceArchiveUrl*(package: SourcePackage): string =
+  ## Returns this package's exact pinned upstream source archive URL.
   package.downloadUrl
 
 func findGrammar*(scopeName: string): Option[GrammarContribution] =
@@ -267,7 +300,7 @@ def write_catalog(manifest: dict, provenance: dict[str, dict]) -> dict:
 
 
 def write_notices(catalog: dict) -> None:
-  lines = ["# Grammar archive notices", "", "These archives are generated from pinned VSIX sources.",
+  lines = ["# Grammar archive notices", "", "These archives are generated from pinned upstream sources.",
            "Each ZIP includes its source package license, manifest, and provenance.", ""]
   for package in catalog["packages"]:
     lines.extend([
@@ -289,7 +322,7 @@ def regenerate(manifest: dict) -> None:
       print(f"download {package_id(package)} {package['version']}")
       urllib.request.urlretrieve(source_url(package), source)
       actual_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
-      expected_sha256 = manifest["sourceVsixSha256"][package["sourceFile"]]
+      expected_sha256 = source_checksum(manifest, package)
       if actual_sha256 != expected_sha256:
         raise RuntimeError(
           f"source checksum mismatch for {package_id(package)}: {actual_sha256}"
@@ -309,7 +342,10 @@ def verify(manifest: dict, catalog_path: Path = DATA_DIR / "catalog.json") -> No
   if not catalog_path.exists():
     raise RuntimeError("missing data/grammars/catalog.json; run regenerateGrammars")
   catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
-  for key in ("archiveFormat", "moeSourceCommit", "moeMappings", "sourceVsixSha256"):
+  for key in (
+      "archiveFormat", "moeSourceCommit", "moeMappings", "sourceVsixSha256",
+      "sourceArchiveSha256",
+  ):
     if catalog.get(key) != manifest.get(key):
       raise RuntimeError(f"catalog {key} differs from the source manifest")
   expected_ids = [package_id(package) for package in manifest["packages"]]

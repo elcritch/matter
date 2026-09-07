@@ -7,17 +7,19 @@ import std/[json, options, strutils, uri]
 
 type
   GrammarReleaseAsset* = object
-    ## One bundled grammar ZIP and its pinned upstream VSIX source.
+    ## One bundled grammar ZIP and its pinned upstream source archive.
     packageKey*: string
     namespace*: string
     name*: string
     version*: string
     assetName*: string
     archiveSha256*: string
+    sourceKind*: string
+    pinnedSourceUrl*: string
     pinnedVsixUrl*: string
 
   GrammarDownloadSource* {.pure.} = enum
-    ## The location from which a grammar ZIP or its original VSIX is obtained.
+    ## The location from which a Matter ZIP or its upstream source is obtained.
     MatterRelease
     Upstream
 
@@ -39,6 +41,8 @@ proc parseGrammarReleaseAssets(): seq[GrammarReleaseAsset] =
   let catalog = parseJson(grammarCatalog)
   for package in catalog["packages"]:
     let archivePath = package["dataArchivePath"].getStr()
+    let sourceKind = package{"sourceKind"}.getStr("vsix")
+    let sourceUrl = package["downloadUrl"].getStr()
     result.add GrammarReleaseAsset(
       packageKey: package["namespace"].getStr() & "." & package["name"].getStr(),
       namespace: package["namespace"].getStr(),
@@ -46,7 +50,9 @@ proc parseGrammarReleaseAssets(): seq[GrammarReleaseAsset] =
       version: package["version"].getStr(),
       assetName: assetName(archivePath),
       archiveSha256: package["archiveSha256"].getStr(),
-      pinnedVsixUrl: package["downloadUrl"].getStr(),
+      sourceKind: sourceKind,
+      pinnedSourceUrl: sourceUrl,
+      pinnedVsixUrl: if sourceKind == "vsix": sourceUrl else: "",
     )
 
 let grammarReleaseAssets* = parseGrammarReleaseAssets()
@@ -62,13 +68,17 @@ func githubLatestReleaseAssetUrl*(asset: GrammarReleaseAsset): string =
   githubLatestReleaseDownloadBaseUrl & "/" & asset.assetName.encodeUrl(false)
 
 func upstreamVsixUrl*(asset: GrammarReleaseAsset): string =
-  ## Returns the exact pinned upstream VSIX URL from which this asset was built.
+  ## Returns the exact pinned VSIX URL, or empty for another source kind.
   asset.pinnedVsixUrl
+
+func upstreamArchiveUrl*(asset: GrammarReleaseAsset): string =
+  ## Returns the exact pinned upstream archive URL from which this asset was built.
+  asset.pinnedSourceUrl
 
 func downloadUrl*(
     asset: GrammarReleaseAsset, source: GrammarDownloadSource, releaseTag = ""
 ): string =
-  ## Returns a Matter release ZIP URL or the asset's pinned upstream VSIX URL.
+  ## Returns a Matter release ZIP URL or the asset's pinned upstream archive URL.
   ## An empty `releaseTag` selects the latest Matter release.
   case source
   of MatterRelease:
@@ -77,7 +87,7 @@ func downloadUrl*(
     else:
       asset.githubReleaseAssetUrl(releaseTag)
   of Upstream:
-    asset.upstreamVsixUrl()
+    asset.upstreamArchiveUrl()
 
 proc findGrammarReleaseAsset*(packageKey: string): Option[GrammarReleaseAsset] =
   ## Finds a grammar release asset by its upstream extension ID.

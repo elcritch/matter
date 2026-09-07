@@ -1,6 +1,6 @@
 # Grammar archive notices
 
-These archives are generated from pinned VSIX sources.
+These archives are generated from pinned upstream sources.
 Each ZIP includes its source package license, manifest, and provenance.
 
 ## vscode.cpp 1.95.3
@@ -198,3 +198,17 @@ Each ZIP includes its source package license, manifest, and provenance.
 - Source: https://github.com/bitwisecook/vscode-tcl/releases/download/0.4.3/tcl-0.4.3.vsix
 - Repository: https://github.com/bitwisecook/vscode-tcl
 - SHA-256: `73c2d0d3d8a071459977d5bc196fecb6f3848046e7a222b083545c978069a13c`
+
+## hashicorp.syntax 0.7.1
+
+- License: MPL-2.0 (https://github.com/hashicorp/syntax/blob/v0.7.1/LICENSE)
+- Source: https://github.com/hashicorp/syntax/archive/refs/tags/v0.7.1.zip
+- Repository: https://github.com/hashicorp/syntax/tree/v0.7.1
+- SHA-256: `5e54b5df5de4c428ad78fa7a7daa44d3a94d297deae2ae1c5b031eb26a74cc33`
+
+## aryairani.tofu-plan-highlight 0.1.0
+
+- License: MIT (https://github.com/aryairani/tofu-plan-highlight/blob/0edf2419e1323bd96db23712a960d2990dd3a323/LICENSE)
+- Source: https://github.com/aryairani/tofu-plan-highlight/archive/0edf2419e1323bd96db23712a960d2990dd3a323.zip
+- Repository: https://github.com/aryairani/tofu-plan-highlight/tree/0edf2419e1323bd96db23712a960d2990dd3a323
+- SHA-256: `e59e52d21880f3116259f72575cf5bde8ef0d210b3fdb35a78d55872ba12d981`

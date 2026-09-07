@@ -1542,8 +1542,98 @@
       "repositoryUrl": "https://github.com/bitwisecook/vscode-tcl",
       "sourceFile": "bitwisecook.tcl.vsix",
       "version": "0.4.3"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/terraform.tmGrammar.json",
+        "package.json"
+      ],
+      "archiveSha256": "5e54b5df5de4c428ad78fa7a7daa44d3a94d297deae2ae1c5b031eb26a74cc33",
+      "constName": "terraformSyntaxPackage",
+      "dataArchivePath": "data/grammars/hashicorp-syntax-0.7.1.zip",
+      "downloadUrl": "https://github.com/hashicorp/syntax/archive/refs/tags/v0.7.1.zip",
+      "grammars": [
+        [
+          "terraformGrammar",
+          "Terraform",
+          "terraform",
+          "source.hcl.terraform",
+          "./syntaxes/terraform.tmGrammar.json",
+          true
+        ]
+      ],
+      "licenseId": "MPL-2.0",
+      "licenseUrl": "https://github.com/hashicorp/syntax/blob/v0.7.1/LICENSE",
+      "name": "syntax",
+      "namespace": "hashicorp",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://github.com/hashicorp/syntax/archive/refs/tags/v0.7.1.zip",
+        "licenseId": "MPL-2.0",
+        "licenseUrl": "https://github.com/hashicorp/syntax/blob/v0.7.1/LICENSE",
+        "package": "hashicorp.syntax",
+        "repositoryUrl": "https://github.com/hashicorp/syntax/tree/v0.7.1",
+        "sourceArchiveMember": {
+          "grammar/syntaxes/terraform.tmGrammar.json": "syntax-0.7.1/syntaxes/terraform.tmGrammar.json"
+        },
+        "version": "0.7.1"
+      },
+      "repositoryUrl": "https://github.com/hashicorp/syntax/tree/v0.7.1",
+      "sourceFile": "hashicorp.syntax.zip",
+      "sourceKind": "github-archive",
+      "sourceRoot": "syntax-0.7.1",
+      "version": "0.7.1"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/syntaxes/tofu-plan.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "e59e52d21880f3116259f72575cf5bde8ef0d210b3fdb35a78d55872ba12d981",
+      "constName": "terraformPlanPackage",
+      "dataArchivePath": "data/grammars/aryairani-tofu-plan-highlight-0.1.0.zip",
+      "downloadUrl": "https://github.com/aryairani/tofu-plan-highlight/archive/0edf2419e1323bd96db23712a960d2990dd3a323.zip",
+      "grammars": [
+        [
+          "terraformPlanGrammar",
+          "OpenTofu / Terraform Plan",
+          "tofu-plan",
+          "source.tofu-plan",
+          "./syntaxes/tofu-plan.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/aryairani/tofu-plan-highlight/blob/0edf2419e1323bd96db23712a960d2990dd3a323/LICENSE",
+      "name": "tofu-plan-highlight",
+      "namespace": "aryairani",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "downloadUrl": "https://github.com/aryairani/tofu-plan-highlight/archive/0edf2419e1323bd96db23712a960d2990dd3a323.zip",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/aryairani/tofu-plan-highlight/blob/0edf2419e1323bd96db23712a960d2990dd3a323/LICENSE",
+        "package": "aryairani.tofu-plan-highlight",
+        "repositoryUrl": "https://github.com/aryairani/tofu-plan-highlight/tree/0edf2419e1323bd96db23712a960d2990dd3a323",
+        "sourceArchiveMember": {
+          "grammar/syntaxes/tofu-plan.tmLanguage.json": "tofu-plan-highlight-0edf2419e1323bd96db23712a960d2990dd3a323/syntaxes/tofu-plan.tmLanguage.json"
+        },
+        "version": "0.1.0"
+      },
+      "repositoryUrl": "https://github.com/aryairani/tofu-plan-highlight/tree/0edf2419e1323bd96db23712a960d2990dd3a323",
+      "sourceFile": "aryairani.tofu-plan-highlight.zip",
+      "sourceKind": "github-archive",
+      "sourceRoot": "tofu-plan-highlight-0edf2419e1323bd96db23712a960d2990dd3a323",
+      "version": "0.1.0"
     }
   ],
+  "sourceArchiveSha256": {
+    "aryairani.tofu-plan-highlight.zip": "080508d09e4d4ec936b2601a6c9b5b79014a1a1d13a759e5204bbbbd5302b757",
+    "hashicorp.syntax.zip": "5dc1b0b2bb2e67afa2e9f78d1b019ee08d4cb5f118da20be7ee0579a8d66df68"
+  },
   "sourceVsixSha256": {
     "astro-build.astro-vscode.vsix": "64fb9007bcfeb5cd64e63aaaecea99ab9a7d26ba6c41b3c1b8130536b304c3ce",
     "bitwisecook.tcl.vsix": "1d380f8f2e9e4f7cc3756656e2b0d7338bc5e67667a61ccdbff4253b7f70ae7d",
