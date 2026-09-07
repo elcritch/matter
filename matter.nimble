@@ -1,4 +1,4 @@
-version       = "0.3.1"
+version       = "0.4.0"
 author        = "Jaremy Creechley"
 description   = "TextMate grammar engine"
 license       = "MIT"
