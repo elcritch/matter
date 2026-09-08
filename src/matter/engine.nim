@@ -139,6 +139,12 @@ type
     rule: CompiledRule
     matched: Match
 
+  CompilationCache = object
+    rules: Table[pointer, CompiledRule]
+    externalRoots: seq[RawRule]
+      ## Keep synthetic external roots alive so their pointer identities cannot
+      ## be recycled while `rules` still uses those addresses as keys.
+
 var matchContext {.threadvar.}: MatchContext
 
 proc searchWithContext(subject: string, regex: Regex, start: int): Match =
@@ -375,7 +381,7 @@ proc compileCaptures(
   repository: RawRepository,
   base: RawRule,
   raw: RawCaptures,
-  cache: var Table[pointer, CompiledRule],
+  cache: var CompilationCache,
   registry: Registry,
 ): OrderedTable[int, CompiledCapture]
 
@@ -384,7 +390,7 @@ proc compileRule(
   repository: RawRepository,
   base: RawRule,
   raw: RawRule,
-  cache: var Table[pointer, CompiledRule],
+  cache: var CompilationCache,
   registry: Registry,
 ): CompiledRule
 
@@ -400,7 +406,7 @@ proc compilePatterns(
     repository: RawRepository,
     base: RawRule,
     patterns: openArray[RawRule],
-    cache: var Table[pointer, CompiledRule],
+    cache: var CompilationCache,
     registry: Registry,
 ): seq[CompiledRule] =
   for pattern in patterns:
@@ -432,6 +438,7 @@ proc compilePatterns(
         let external = registry.grammars[scope]
         let externalRoot =
           RawRule(patterns: external.patterns, repository: external.repository)
+        cache.externalRoots.add(externalRoot)
         var externalRepo =
           mergedRepository(external.repository, initOrderedTable[string, RawRule]())
         externalRepo["$self"] = externalRoot
@@ -454,7 +461,7 @@ proc compileCaptures(
     repository: RawRepository,
     base: RawRule,
     raw: RawCaptures,
-    cache: var Table[pointer, CompiledRule],
+    cache: var CompilationCache,
     registry: Registry,
 ): OrderedTable[int, CompiledCapture] =
   result = initOrderedTable[int, CompiledCapture]()
@@ -471,16 +478,16 @@ proc compileRule(
     repository: RawRepository,
     base: RawRule,
     raw: RawRule,
-    cache: var Table[pointer, CompiledRule],
+    cache: var CompilationCache,
     registry: Registry,
 ): CompiledRule =
   if raw.isNil:
     raise newException(MatterError, "nil grammar rule")
   let key = cast[pointer](raw)
-  if cache.hasKey(key):
-    return cache[key]
+  if cache.rules.hasKey(key):
+    return cache.rules[key]
   result = CompiledRule(name: raw.name, contentName: raw.contentName)
-  cache[key] = result
+  cache.rules[key] = result
   let localRepository = mergedRepository(repository, raw.repository)
   if raw.match.len > 0:
     result.kind = rkMatch
@@ -540,7 +547,7 @@ proc loadGrammar*(
   var repository = raw.repository
   repository["$self"] = rootRaw
   repository["$base"] = rootRaw
-  var cache = initTable[pointer, CompiledRule]()
+  var cache = CompilationCache(rules: initTable[pointer, CompiledRule]())
   result = Grammar(
     scopeName: scopeName,
     root: compileRule(raw, repository, rootRaw, rootRaw, cache, registry),
@@ -562,7 +569,7 @@ proc loadGrammar*(
         var injectionRepo = injectionGrammar.repository
         injectionRepo["$self"] = injectionRoot
         injectionRepo["$base"] = rootRaw
-        var injectionCache = initTable[pointer, CompiledRule]()
+        var injectionCache = CompilationCache(rules: initTable[pointer, CompiledRule]())
         result.injections.add(
           Injection(
             selector: selector,

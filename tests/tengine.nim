@@ -92,6 +92,33 @@ suite "matter engine":
     check result.tokens[0].scopes == @["source.test", "local.word"]
     check result.tokens[1].scopes == @["source.test", "external.word"]
 
+  test "keeps full external grammar roots distinct while compiling":
+    let registry = newRegistry()
+    for index, letter in ["a", "b", "c", "d"]:
+      registry.addGrammar(
+        parseRawGrammar(
+          """{"scopeName":"source.external.$1","patterns":[{"match":"$2","name":"external.$1"}]}""" %
+            [$index, letter],
+          "external-" & $index & ".json",
+        )
+      )
+    registry.addGrammar(
+      parseRawGrammar(
+        """
+      { "scopeName": "source.test", "patterns": [
+        { "include": "source.external.0" },
+        { "include": "source.external.1" },
+        { "include": "source.external.2" },
+        { "include": "source.external.3" }
+      ] }
+    """,
+        "main.json",
+      )
+    )
+    let result = registry.loadGrammar("source.test").tokenizeLine("abcd")
+    check result.tokens.mapIt(it.scopes[^1]) ==
+      @["external.0", "external.1", "external.2", "external.3"]
+
   test "retokenizes capture patterns and applies matching injections":
     let registry = newRegistry()
     registry.addGrammar(
