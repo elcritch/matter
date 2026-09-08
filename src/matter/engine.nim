@@ -232,6 +232,10 @@ proc resolveAnchors(source: string, allowA = true, allowG = true): string =
         result.add(if allowA: "\\A" else: "(?!)")
       of 'G':
         result.add(if allowG: "\\G" else: "(?!)")
+      of 'p', 'P':
+        if position + 2 < source.len and source[position + 2] == '{':
+          result.add(source[position])
+        result.add(escaped)
       else:
         result.add(source[position])
         result.add(escaped)

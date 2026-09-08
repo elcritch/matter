@@ -162,6 +162,20 @@ suite "vscode-textmate compatibility":
     doAssert tokenAt(result.tokens, 1).hasScope("anchor.g")
     doAssert not tokenAt(result.tokens, 2).hasScope("anchor.g")
 
+  test "bare property escapes retain Oniguruma identity semantics":
+    let tested = compileGrammar(
+      """
+      { "scopeName": "source.compat", "patterns": [
+        { "match": "(?<=^[\\s\\d\\p]*)\\bE\\b", "name": "level.error" }
+      ] }
+    """
+    )
+    let
+      matching = tokenizeLine(tested, "12 p E")
+      rejected = tokenizeLine(tested, "12 ! E")
+    doAssert tokenAt(matching.tokens, 5).hasScope("level.error")
+    doAssert not tokenAt(rejected.tokens, 5).hasScope("level.error")
+
   test "the root rule stack is always available":
     let tested = compileGrammar("""{ "scopeName": "source.compat", "patterns": [] }""")
     let result = tokenizeLine(tested, "plain")
