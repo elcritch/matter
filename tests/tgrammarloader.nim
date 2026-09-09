@@ -82,6 +82,29 @@ suite "grammar package loader":
     check "documentation.injection.ts" in loaded.loadedScopeNames
     discard registry.loadGrammar("source.ts")
 
+  test "bounds one expensive regex in time-limited packaged YAML":
+    let root = currentSourcePath.parentDir.parentDir
+    let registry = newRegistry()
+    discard registry.loadGrammarPackage(zipResourceSource(root), "source.yaml")
+    let grammar = registry.loadGrammar("source.yaml")
+    var state: StateStack
+    for line in [
+      "on:", "  push:", "    branches:", "      - main", "  pull_request:",
+      "    branches:", "      - '*'", "", "jobs:", "  tests:",
+    ]:
+      let parsed = grammar.tokenizeLine(line, state)
+      check not parsed.stoppedEarly
+      state = parsed.completedRuleStack
+
+    let limited = grammar.tokenizeLine(
+      "    name: tests (${{ matrix.os }}, ${{ matrix.nimversion }}, " &
+        "${{ matrix.display }})",
+      state,
+      timeLimitMs = 100,
+    )
+    check limited.stoppedEarly
+    check limited.ruleStack == state
+
   test "rejects an unavailable requested root resource":
     let unavailable: GrammarResourceSource = proc(
         contribution: GrammarContribution

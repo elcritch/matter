@@ -170,11 +170,14 @@ half-open UTF-8 byte range, so the end offset is suitable for Nim string
 slicing.
 
 When using a positive `timeLimitMs`, check `stoppedEarly` before reusing a
-result's `ruleStack`: an interrupted result contains the partial current-line
-state and is not normalized for the next line. `completedRuleStack` returns a
-safe next-line state or raises `MatterError` for an interrupted result. The
-limit is cooperative between tokenization iterations, rather than a strict
-per-regex latency bound.
+result's `ruleStack`: an interrupted result is not guaranteed to be normalized
+for the next line. `completedRuleStack` returns a safe next-line state or raises
+`MatterError` for an interrupted result. The wall-clock limit is cooperative
+between tokenization iterations. Timed calls also cap each individual regex
+probe at `MatterTimedRegexStepLimit` matching steps so one pathological grammar
+expression cannot block the cooperative check indefinitely. Override that
+positive compile-time constant with `-d:MatterTimedRegexStepLimit=N` when a
+platform needs a different tradeoff.
 
 For empty lines, query the state rather than the previous line's final token:
 
