@@ -9,6 +9,8 @@ import ./[metadata, rawgrammar, selectors, theme]
 type
   MatterError* = object of ValueError ## A grammar could not be compiled or tokenized.
 
+  RegexProbeLimitError = object of CatchableError
+
   RuleKind = enum
     rkInclude
     rkMatch
@@ -145,16 +147,34 @@ type
       ## Keep synthetic external roots alive so their pointer identities cannot
       ## be recycled while `rules` still uses those addresses as keys.
 
-var matchContext {.threadvar.}: MatchContext
+const MatterTimedRegexStepLimit* {.intdefine.} = 10_000
+  ## Maximum Reni matching steps for one regex probe when `timeLimitMs` is
+  ## positive. This bounds a single pathological grammar regex that cannot be
+  ## interrupted by the tokenizer's cooperative wall-clock checks.
+
+static:
+  doAssert MatterTimedRegexStepLimit > 0, "MatterTimedRegexStepLimit must be positive"
+
+var
+  matchContext {.threadvar.}: MatchContext
+  activeRegexStepLimit {.threadvar.}: int
 
 proc searchWithContext(subject: string, regex: Regex, start: int): Match =
   ## Reuse reni's per-thread scratch buffers across all tokenizer probes.
   if matchContext.isNil:
     matchContext = newMatchContext(regex.captureCount)
   try:
-    discard searchIntoCtx(matchContext, subject, regex, result, start)
+    discard searchIntoCtx(
+      matchContext,
+      subject,
+      regex,
+      result,
+      start,
+      stepLimit =
+        if activeRegexStepLimit > 0: activeRegexStepLimit else: DefaultStepLimit,
+    )
   except RegexLimitError as error:
-    raise newException(MatterError, "regex matching limit exceeded: " & error.msg)
+    raise newException(RegexProbeLimitError, error.msg)
 
 proc newRegistry*(): Registry =
   ## Create an empty grammar registry with the default TextMate theme.
@@ -1314,7 +1334,7 @@ proc tokenizeInto(
       zeroWidthAt = -1
   stack
 
-proc tokenizeLine*(
+proc tokenizeLineImpl(
     grammar: Grammar,
     line: string,
     previousState: StateStack = nil,
@@ -1322,9 +1342,9 @@ proc tokenizeLine*(
 ): TokenizeLineResult =
   ## Tokenize one line. State frames are never mutated and can be reused safely.
   ##
-  ## When `timeLimitMs` interrupts tokenization, `stoppedEarly` is true and
-  ## `ruleStack` is the partial current-line stack, not a valid next-line
-  ## state. Retry the line or use `completedRuleStack`, which rejects it.
+  ## When a positive `timeLimitMs` interrupts tokenization, `stoppedEarly` is
+  ## true and `ruleStack` is not a completed next-line state. Retry the line or
+  ## use `completedRuleStack`, which rejects interrupted results.
   let started = getMonoTime()
   let scannedLine = line & "\n"
   let lineLength = line.len
@@ -1461,3 +1481,28 @@ proc tokenizeLine*(
       if span.b > position:
         position = span.b
   plainResult(grammar, tokens, nextLineState(stack))
+
+proc tokenizeLine*(
+    grammar: Grammar,
+    line: string,
+    previousState: StateStack = nil,
+    timeLimitMs: int = 0,
+): TokenizeLineResult =
+  let previousRegexStepLimit = activeRegexStepLimit
+  activeRegexStepLimit =
+    if timeLimitMs > 0: MatterTimedRegexStepLimit else: DefaultStepLimit
+  defer:
+    activeRegexStepLimit = previousRegexStepLimit
+  try:
+    result = grammar.tokenizeLineImpl(line, previousState, timeLimitMs)
+  except RegexProbeLimitError as error:
+    if timeLimitMs <= 0:
+      raise newException(MatterError, "regex matching limit exceeded: " & error.msg)
+    let stack =
+      if previousState.isNil:
+        initialState(grammar)
+      else:
+        previousState
+    var tokens: seq[Token]
+    addToken(tokens, 0, line.len, stack.scopes, line.len)
+    result = plainResult(grammar, tokens, stack, true)
