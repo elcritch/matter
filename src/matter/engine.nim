@@ -646,20 +646,23 @@ proc initialState(grammar: Grammar): StateStack =
   let scopes = @[grammar.scopeName]
   newState(grammar.root, nil, scopes, scopes, 0, -1, true, true)
 
-proc nextLineState(stack: StateStack): StateStack =
+proc nextLineState(stack: StateStack, isTop = true): StateStack =
+  # Only the active rule can carry its EOL anchor into the next line.
+  # Reviving an enclosing anchor after a child ends reopens YAML scalars
+  # at each dedent instead of allowing the enclosing block rule to end.
   StateStack(
     parent:
       if stack.parent.isNil:
         nil
       else:
-        nextLineState(stack.parent),
+        nextLineState(stack.parent, false),
     rule: stack.rule,
     nameScopes: stack.nameScopes,
     scopes: stack.scopes,
     endRegex: stack.endRegex,
     hasEndRegex: stack.hasEndRegex,
     enterPos: -1,
-    anchorPos: if stack.beginRuleCapturedEol: 0 else: -1,
+    anchorPos: if isTop and stack.beginRuleCapturedEol: 0 else: -1,
     isRoot: stack.isRoot,
     isFirstLine: false,
     beginRuleCapturedEol: stack.beginRuleCapturedEol,

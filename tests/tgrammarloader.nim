@@ -105,6 +105,29 @@ suite "grammar package loader":
     check limited.stoppedEarly
     check limited.ruleStack == state
 
+  test "packaged YAML block scalars end at a dedented comment or key":
+    let root = currentSourcePath.parentDir.parentDir
+    let registry = newRegistry()
+    discard registry.loadGrammarPackage(zipResourceSource(root), "source.yaml")
+    let grammar = registry.loadGrammar("source.yaml")
+    for indicator in [">-", "|", ">", "|+"]:
+      for dedented in ["  # after scalar", "  steps:"]:
+        var state: StateStack
+        for line in [
+          "jobs:", "  nimargs: " & indicator, "    --opt:none", "", "    -d:Example=96"
+        ]:
+          let parsed = grammar.tokenizeLine(line, state)
+          check not parsed.stoppedEarly
+          state = parsed.completedRuleStack
+        check state.hasActiveScope("string.unquoted.block.yaml")
+        let parsed = grammar.tokenizeLine(dedented, state)
+        check not parsed.stoppedEarly
+        check not parsed.tokens.anyIt("string.unquoted.block.yaml" in it.scopes)
+        if dedented.contains('#'):
+          check parsed.tokens.anyIt("comment.line.number-sign.yaml" in it.scopes)
+        else:
+          check parsed.tokens.anyIt("entity.name.tag.yaml" in it.scopes)
+
   test "rejects an unavailable requested root resource":
     let unavailable: GrammarResourceSource = proc(
         contribution: GrammarContribution
