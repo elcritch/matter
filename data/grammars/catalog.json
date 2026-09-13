@@ -763,7 +763,7 @@
         "grammar/syntaxes/markdown.tmLanguage.json",
         "package.json"
       ],
-      "archiveSha256": "f4108c30e0aecda68497a75efbec7854c1bc999f467b7641a71d0ba0eb5e0288",
+      "archiveSha256": "d1d32ddeba9b259c5d7fca43c67837f39f2b55797b7779caf7dc9f2b7382683d",
       "constName": "vscodeMarkdownPackage",
       "dataArchivePath": "data/grammars/vscode-markdown-1.95.3.zip",
       "downloadUrl": "https://open-vsx.org/api/vscode/markdown/1.95.3/file/vscode.markdown-1.95.3.vsix",
@@ -787,7 +787,7 @@
         "licenseId": "MIT",
         "licenseUrl": "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
         "matterPatches": [
-          "fenced_code_block_nim"
+          "fenced_code_blocks_for_catalogued_languages"
         ],
         "package": "vscode.markdown",
         "repositoryUrl": "https://github.com/microsoft/vscode/tree/1.95.3/extensions/markdown",

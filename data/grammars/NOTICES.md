@@ -92,7 +92,7 @@ Each ZIP includes its source package license, manifest, and provenance.
 - License: MIT (https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt)
 - Source: https://open-vsx.org/api/vscode/markdown/1.95.3/file/vscode.markdown-1.95.3.vsix
 - Repository: https://github.com/microsoft/vscode/tree/1.95.3/extensions/markdown
-- SHA-256: `f4108c30e0aecda68497a75efbec7854c1bc999f467b7641a71d0ba0eb5e0288`
+- SHA-256: `d1d32ddeba9b259c5d7fca43c67837f39f2b55797b7779caf7dc9f2b7382683d`
 
 ## vscode.rust 1.95.3
 

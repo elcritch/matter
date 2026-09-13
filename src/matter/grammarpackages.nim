@@ -261,7 +261,7 @@ const
     downloadUrl:
       "https://open-vsx.org/api/vscode/markdown/1.95.3/file/vscode.markdown-1.95.3.vsix",
     dataArchivePath: "data/grammars/vscode-markdown-1.95.3.zip",
-    archiveSha256: "f4108c30e0aecda68497a75efbec7854c1bc999f467b7641a71d0ba0eb5e0288",
+    archiveSha256: "d1d32ddeba9b259c5d7fca43c67837f39f2b55797b7779caf7dc9f2b7382683d",
   )
   vscodeRustPackage* = SourcePackage(
     namespace: "vscode",

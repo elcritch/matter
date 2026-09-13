@@ -139,8 +139,8 @@ nim verifyGrammars
 
 The generator may apply deterministic Matter compatibility patches after the
 upstream source checksum is verified. Such patches are recorded in the
-archive's `PROVENANCE.json`; the bundled Markdown grammar adds Nim and Nims
-fenced-code dispatch because the pinned upstream grammar does not include it.
+archive's `PROVENANCE.json`; the bundled Markdown grammar adds fenced-code
+dispatch for every non-empty language ID in Matter's grammar catalog.
 
 ## Parse, register, and tokenize
 

@@ -1,4 +1,4 @@
-import std/[options, os, sequtils, strutils, tables, tempfiles, unittest]
+import std/[json, options, os, sequtils, sets, strutils, tables, tempfiles, unittest]
 
 import matter/[engine, grammarloader, grammarpackages]
 import zippy/ziparchives
@@ -58,25 +58,53 @@ suite "grammar package loader":
     check "source.nimble" in loaded.loadedScopeNames
     discard registry.loadGrammar("source.nim")
 
-  test "bundled Markdown dispatches Nim fenced code":
+  test "bundled Markdown dispatches every catalogued language ID":
     let root = currentSourcePath.parentDir.parentDir
     let registry = newRegistry()
     let source = zipResourceSource(root)
-    discard registry.loadGrammarPackage(source, "source.nim")
-    discard registry.loadGrammarPackage(source, "text.html.markdown")
+    let loaded = registry.loadGrammarPackage(source, "text.html.markdown")
+    check "source.nim" in loaded.loadedScopeNames
+    check "source.hcl.terraform" in loaded.loadedScopeNames
+    check "source.cabal" in loaded.loadedScopeNames
+
+    let markdownSource = source(markdownGrammar)
+    require markdownSource.isSome
+    let raw = parseJson(markdownSource.get)
+    var expectedScopes = initTable[string, string]()
+    for grammar in knownGrammars:
+      if grammar.languageId.len > 0 and
+          (not expectedScopes.hasKey(grammar.languageId) or grammar.isPrimary):
+        expectedScopes[grammar.languageId] = grammar.scopeName
+    var generatedIncludes = initHashSet[string]()
+    for pattern in raw["repository"]["fenced_code_block"]["patterns"]:
+      let includeSource = pattern{"include"}.getStr
+      if includeSource.startsWith("#matter_fenced_code_block_"):
+        generatedIncludes.incl includeSource
+    check generatedIncludes.len == expectedScopes.len
+    for languageId, scopeName in expectedScopes:
+      let key = "matter_fenced_code_block_" & languageId
+      require raw["repository"].hasKey(key)
+      check "#" & key in generatedIncludes
+      check raw["repository"][key]["patterns"][0]["patterns"][0]["include"].getStr ==
+        scopeName
+
     let markdown = registry.loadGrammar("text.html.markdown")
-    let opening = markdown.tokenizeLine("```nim")
-    check not opening.stoppedEarly
-    # The Markdown begin/while bridge consumes the first content line while
-    # it establishes the embedded-language state.
-    let blank = markdown.tokenizeLine("", opening.completedRuleStack)
-    let body =
-      markdown.tokenizeLine("proc answer() = discard", blank.completedRuleStack)
-    check not blank.stoppedEarly
-    check not body.stoppedEarly
-    check body.tokens.anyIt("meta.embedded.block.nim" in it.scopes)
-    check body.tokens.anyIt("keyword.other.nim" in it.scopes)
-    check body.tokens.anyIt("entity.name.function.nim" in it.scopes)
+    for (languageId, bodySource, syntaxScope) in [
+      ("nim", "proc answer() = discard", "entity.name.function.nim"),
+      ("terraform", "resource \"example\" \"main\" {}", "entity.name.type.terraform"),
+      ("tofu-plan", "  + name = \"example\"", "markup.inserted.marker.tofu-plan"),
+      ("cabal", "name: example", "keyword.other.cabal"),
+    ]:
+      let opening = markdown.tokenizeLine("```" & languageId)
+      check not opening.stoppedEarly
+      # The Markdown begin/while bridge consumes the first content line while
+      # it establishes the embedded-language state.
+      let blank = markdown.tokenizeLine("", opening.completedRuleStack)
+      let body = markdown.tokenizeLine(bodySource, blank.completedRuleStack)
+      check not blank.stoppedEarly
+      check not body.stoppedEarly
+      check body.tokens.anyIt("meta.embedded.block." & languageId in it.scopes)
+      check body.tokens.anyIt(syntaxScope in it.scopes)
 
   test "loads bundled Terraform source and plan grammars":
     let root = currentSourcePath.parentDir.parentDir

@@ -12,6 +12,7 @@ import argparse
 import hashlib
 import json
 import plistlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -96,30 +97,32 @@ def fixed_info(name: str) -> zipfile.ZipInfo:
   return info
 
 
-def patch_markdown_grammar(contents: bytes) -> bytes:
-  """Add Matter's catalogued Nim grammar to Markdown fenced blocks.
+def markdown_fence_grammars(manifest: dict) -> list[tuple[str, str]]:
+  """Select one catalogued TextMate scope for every declared language ID."""
+  selected: dict[str, tuple[str, bool]] = {}
+  for package in manifest["packages"]:
+    for grammar in package["grammars"]:
+      language_id, scope_name, primary = grammar[2], grammar[3], grammar[5]
+      if not language_id:
+        continue
+      previous = selected.get(language_id)
+      if previous is None or primary and not previous[1]:
+        selected[language_id] = (scope_name, primary)
+      elif previous[0] != scope_name and primary == previous[1]:
+        raise RuntimeError(
+          f"ambiguous Markdown fence language {language_id}: "
+          f"{previous[0]} and {scope_name}"
+        )
+  return [(language_id, selected[language_id][0]) for language_id in sorted(selected)]
 
-  The pinned VS Code Markdown grammar has explicit fenced-language rules, but
-  does not include Nim even though Matter bundles ``source.nim``. Keep the
-  upstream source checksum unchanged and apply this deterministic compatibility
-  patch while building the stripped archive.
-  """
-  grammar = json.loads(contents)
-  repository = grammar["repository"]
-  if "fenced_code_block_nim" in repository:
-    return contents
-  fenced = repository["fenced_code_block"]
-  patterns = fenced["patterns"]
-  unknown_index = next(
-    (index for index, pattern in enumerate(patterns)
-     if pattern.get("include") == "#fenced_code_block_unknown"),
-    None,
-  )
-  if unknown_index is None:
-    raise RuntimeError("Markdown grammar has no unknown fenced-code fallback")
-  patterns.insert(unknown_index, {"include": "#fenced_code_block_nim"})
-  repository["fenced_code_block_nim"] = {
-    "begin": "(^|\\G)(\\s*)(`{3,}|~{3,})\\s*(?i:(nim|nims)((\\s+|:|,|\\{|\\?)[^`]*)?$)",
+
+def markdown_fence_rule(language_id: str, scope_name: str) -> dict:
+  language_pattern = re.escape(language_id)
+  return {
+    "begin": (
+      "(^|\\G)(\\s*)(`{3,}|~{3,})\\s*(?i:(" + language_pattern +
+      ")((\\s+|:|,|\\{|\\?)[^`]*)?$)"
+    ),
     "name": "markup.fenced_code.block.markdown",
     "end": "(^|\\G)(\\2|\\s{0,3})(\\3)\\s*$",
     "beginCaptures": {
@@ -133,21 +136,48 @@ def patch_markdown_grammar(contents: bytes) -> bytes:
     "patterns": [{
       "begin": "(^|\\G)(\\s*)(.*)",
       "while": "(^|\\G)(?!\\s*([`~]{3,})\\s*$)",
-      "contentName": "meta.embedded.block.nim",
-      "patterns": [{"include": "source.nim"}],
+      "contentName": f"meta.embedded.block.{language_id}",
+      "patterns": [{"include": scope_name}],
     }],
   }
+
+
+def patch_markdown_grammar(contents: bytes, manifest: dict) -> bytes:
+  """Dispatch catalogued language IDs from Markdown fenced code blocks."""
+  grammar = json.loads(contents)
+  repository = grammar["repository"]
+  fenced = repository["fenced_code_block"]
+  patterns = fenced["patterns"]
+  unknown_index = next(
+    (index for index, pattern in enumerate(patterns)
+     if pattern.get("include") == "#fenced_code_block_unknown"),
+    None,
+  )
+  if unknown_index is None:
+    raise RuntimeError("Markdown grammar has no unknown fenced-code fallback")
+  generated_patterns = []
+  for language_id, scope_name in markdown_fence_grammars(manifest):
+    key = "matter_fenced_code_block_" + language_id
+    if key in repository:
+      raise RuntimeError(f"Markdown grammar already contains generated rule {key}")
+    repository[key] = markdown_fence_rule(language_id, scope_name)
+    generated_patterns.append({"include": "#" + key})
+  patterns[unknown_index:unknown_index] = generated_patterns
   return json.dumps(grammar, ensure_ascii=False, separators=(",", ":")).encode()
 
 
-def patch_grammar_member(package: dict, member: str, contents: bytes) -> bytes:
+def patch_grammar_member(
+    manifest: dict, package: dict, member: str, contents: bytes
+) -> bytes:
   if (package_id(package) == "vscode.markdown" and
       member == "grammar/syntaxes/markdown.tmLanguage.json"):
-    return patch_markdown_grammar(contents)
+    return patch_markdown_grammar(contents, manifest)
   return contents
 
 
-def write_archive(package: dict, source: Path, destination: Path) -> dict:
+def write_archive(
+    manifest: dict, package: dict, source: Path, destination: Path
+) -> dict:
   with zipfile.ZipFile(source) as source_archive:
     names = source_archive.namelist()
     package_json = source_member(package, "package.json")
@@ -173,7 +203,7 @@ def write_archive(package: dict, source: Path, destination: Path) -> dict:
     )
     provenance[provenance_member] = {member: original for member, original in needed}
     if package_id(package) == "vscode.markdown":
-      provenance["matterPatches"] = ["fenced_code_block_nim"]
+      provenance["matterPatches"] = ["fenced_code_blocks_for_catalogued_languages"]
     members = {
       "LICENSE": source_archive.read(license_file),
       "package.json": source_archive.read(package_json),
@@ -181,7 +211,7 @@ def write_archive(package: dict, source: Path, destination: Path) -> dict:
     }
     for member, original in needed:
       members[member] = patch_grammar_member(
-        package, member, source_archive.read(original)
+        manifest, package, member, source_archive.read(original)
       )
   destination.parent.mkdir(parents=True, exist_ok=True)
   with zipfile.ZipFile(destination, "w") as archive:
@@ -389,7 +419,9 @@ def regenerate(manifest: dict) -> None:
           f"source checksum mismatch for {package_id(package)}: {actual_sha256}"
         )
       destination = DATA_DIR / archive_name(package)
-      provenance[package_id(package)] = write_archive(package, source, destination)
+      provenance[package_id(package)] = write_archive(
+        manifest, package, source, destination
+      )
     catalog = write_catalog(manifest, provenance)
     (DATA_DIR / "catalog.json").write_text(
       json.dumps(catalog, indent=2, sort_keys=True) + "\n", encoding="utf-8"
