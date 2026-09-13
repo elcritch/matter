@@ -58,6 +58,26 @@ suite "grammar package loader":
     check "source.nimble" in loaded.loadedScopeNames
     discard registry.loadGrammar("source.nim")
 
+  test "bundled Markdown dispatches Nim fenced code":
+    let root = currentSourcePath.parentDir.parentDir
+    let registry = newRegistry()
+    let source = zipResourceSource(root)
+    discard registry.loadGrammarPackage(source, "source.nim")
+    discard registry.loadGrammarPackage(source, "text.html.markdown")
+    let markdown = registry.loadGrammar("text.html.markdown")
+    let opening = markdown.tokenizeLine("```nim")
+    check not opening.stoppedEarly
+    # The Markdown begin/while bridge consumes the first content line while
+    # it establishes the embedded-language state.
+    let blank = markdown.tokenizeLine("", opening.completedRuleStack)
+    let body =
+      markdown.tokenizeLine("proc answer() = discard", blank.completedRuleStack)
+    check not blank.stoppedEarly
+    check not body.stoppedEarly
+    check body.tokens.anyIt("meta.embedded.block.nim" in it.scopes)
+    check body.tokens.anyIt("keyword.other.nim" in it.scopes)
+    check body.tokens.anyIt("entity.name.function.nim" in it.scopes)
+
   test "loads bundled Terraform source and plan grammars":
     let root = currentSourcePath.parentDir.parentDir
 

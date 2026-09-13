@@ -96,6 +96,57 @@ def fixed_info(name: str) -> zipfile.ZipInfo:
   return info
 
 
+def patch_markdown_grammar(contents: bytes) -> bytes:
+  """Add Matter's catalogued Nim grammar to Markdown fenced blocks.
+
+  The pinned VS Code Markdown grammar has explicit fenced-language rules, but
+  does not include Nim even though Matter bundles ``source.nim``. Keep the
+  upstream source checksum unchanged and apply this deterministic compatibility
+  patch while building the stripped archive.
+  """
+  grammar = json.loads(contents)
+  repository = grammar["repository"]
+  if "fenced_code_block_nim" in repository:
+    return contents
+  fenced = repository["fenced_code_block"]
+  patterns = fenced["patterns"]
+  unknown_index = next(
+    (index for index, pattern in enumerate(patterns)
+     if pattern.get("include") == "#fenced_code_block_unknown"),
+    None,
+  )
+  if unknown_index is None:
+    raise RuntimeError("Markdown grammar has no unknown fenced-code fallback")
+  patterns.insert(unknown_index, {"include": "#fenced_code_block_nim"})
+  repository["fenced_code_block_nim"] = {
+    "begin": "(^|\\G)(\\s*)(`{3,}|~{3,})\\s*(?i:(nim|nims)((\\s+|:|,|\\{|\\?)[^`]*)?$)",
+    "name": "markup.fenced_code.block.markdown",
+    "end": "(^|\\G)(\\2|\\s{0,3})(\\3)\\s*$",
+    "beginCaptures": {
+      "3": {"name": "punctuation.definition.markdown"},
+      "4": {"name": "fenced_code.block.language.markdown"},
+      "5": {"name": "fenced_code.block.language.attributes.markdown"},
+    },
+    "endCaptures": {
+      "3": {"name": "punctuation.definition.markdown"},
+    },
+    "patterns": [{
+      "begin": "(^|\\G)(\\s*)(.*)",
+      "while": "(^|\\G)(?!\\s*([`~]{3,})\\s*$)",
+      "contentName": "meta.embedded.block.nim",
+      "patterns": [{"include": "source.nim"}],
+    }],
+  }
+  return json.dumps(grammar, ensure_ascii=False, separators=(",", ":")).encode()
+
+
+def patch_grammar_member(package: dict, member: str, contents: bytes) -> bytes:
+  if (package_id(package) == "vscode.markdown" and
+      member == "grammar/syntaxes/markdown.tmLanguage.json"):
+    return patch_markdown_grammar(contents)
+  return contents
+
+
 def write_archive(package: dict, source: Path, destination: Path) -> dict:
   with zipfile.ZipFile(source) as source_archive:
     names = source_archive.namelist()
@@ -121,12 +172,17 @@ def write_archive(package: dict, source: Path, destination: Path) -> dict:
       "sourceVsixMember" if source_kind(package) == "vsix" else "sourceArchiveMember"
     )
     provenance[provenance_member] = {member: original for member, original in needed}
+    if package_id(package) == "vscode.markdown":
+      provenance["matterPatches"] = ["fenced_code_block_nim"]
     members = {
       "LICENSE": source_archive.read(license_file),
       "package.json": source_archive.read(package_json),
       "PROVENANCE.json": (json.dumps(provenance, indent=2, sort_keys=True) + "\n").encode(),
     }
-    members.update({member: source_archive.read(original) for member, original in needed})
+    for member, original in needed:
+      members[member] = patch_grammar_member(
+        package, member, source_archive.read(original)
+      )
   destination.parent.mkdir(parents=True, exist_ok=True)
   with zipfile.ZipFile(destination, "w") as archive:
     for name in sorted(members):

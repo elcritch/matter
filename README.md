@@ -137,6 +137,11 @@ Verify a clean checkout without network access with:
 nim verifyGrammars
 ```
 
+The generator may apply deterministic Matter compatibility patches after the
+upstream source checksum is verified. Such patches are recorded in the
+archive's `PROVENANCE.json`; the bundled Markdown grammar adds Nim and Nims
+fenced-code dispatch because the pinned upstream grammar does not include it.
+
 ## Parse, register, and tokenize
 
 ```nim
