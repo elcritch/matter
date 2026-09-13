@@ -17,6 +17,9 @@ type
     ## A raw TextMate rule. Rules are references because patterns, repositories,
     ## and captures can recursively contain more rules.
     `include`*, name*, contentName*: string
+    matterEmbeddedLanguage*: string
+      ## Matter extension: a dynamic name whose result selects a registered
+      ## language grammar while this begin/end rule is active.
     match*, begin*, `end`*, `while`*: string
     captures*, beginCaptures*, endCaptures*, whileCaptures*: RawCaptures
     hasCaptures*, hasBeginCaptures*, hasEndCaptures*, hasWhileCaptures*: bool
@@ -98,6 +101,7 @@ proc parseRule(node: JsonNode, context: string): RawRule =
     `include`: optionalString(node, "include", context),
     name: optionalString(node, "name", context),
     contentName: optionalString(node, "contentName", context),
+    matterEmbeddedLanguage: optionalString(node, "matterEmbeddedLanguage", context),
     match: optionalString(node, "match", context),
     begin: optionalString(node, "begin", context),
     `end`: optionalString(node, "end", context),

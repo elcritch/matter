@@ -5,6 +5,8 @@
 ## to tokenize successive lines. Plain tokens contain half-open UTF-8 byte
 ## offsets and their outer-to-inner scope paths. `tokenizeLine2` additionally
 ## emits alternating UTF-8 byte offsets and packed metadata.
+## Matter's `matterEmbeddedLanguage` rule extension and `registerLanguage`
+## registry mapping provide runtime dispatch for embedded language regions.
 ##
 ## `parseRawGrammar` raises `RawGrammarError` for invalid grammar text. Registry
 ## and compilation failures raise `MatterError`; both errors are catchable.

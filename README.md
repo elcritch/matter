@@ -69,7 +69,7 @@ import matter/[engine, grammarloader]
 
 let registry = newRegistry()
 let loaded = registry.loadGrammarPackage(
-  zipResourceSource(getCurrentDir()), "text.html.markdown"
+  zipResourceSource(getCurrentDir()), ["text.html.markdown", "source.nim"]
 )
 for missing in loaded.unresolvedIncludes:
   echo missing.includingScope, " includes ", missing.includeSource,
@@ -85,6 +85,9 @@ requested roots raise `MatterError`; missing transitive external scopes are
 reported in `unresolvedIncludes` because many upstream grammars intentionally
 refer to optional languages outside the bundled catalog. The loader reports
 missing external scopes, not missing `scope#repository-member` targets.
+The loader also registers each loaded grammar's catalogued language ID. Loading
+Markdown together with `source.nim`, for example, lets its fenced-code rule
+resolve `nim` at runtime without adding a static TextMate include.
 
 ### Download grammar archives
 
@@ -139,8 +142,10 @@ nim verifyGrammars
 
 The generator may apply deterministic Matter compatibility patches after the
 upstream source checksum is verified. Such patches are recorded in the
-archive's `PROVENANCE.json`; the bundled Markdown grammar adds fenced-code
-dispatch for every non-empty language ID in Matter's grammar catalog.
+archive's `PROVENANCE.json`; the bundled Markdown grammar adds one runtime
+fenced-code dispatch rule. It works with any language registered before the
+Markdown grammar is loaded, rather than expanding the archive for each
+catalogued language.
 
 ## Parse, register, and tokenize
 
@@ -195,12 +200,28 @@ if state.hasActiveScope("markup.fenced_code"):
 `activeScopes` returns a defensive outer-to-inner scope copy; `hasActiveScope`
 matches complete dotted scope prefixes.
 
+Matter grammars may set `matterEmbeddedLanguage` on a `begin` rule to a dynamic
+capture expression such as `${4:/downcase}`. If that expression resolves to a
+language ID registered with `registerLanguage`, Matter tokenizes the rule's
+content with that grammar while retaining the host scopes and delimiter. An
+unregistered ID leaves the rule unmatched so later grammar rules can handle it.
+This is a Matter extension, not a TextMate include; register all participating
+grammars and language IDs before loading the host grammar.
+
+```nim
+registry.addGrammar(embeddedRawGrammar)
+registry.registerLanguage("nim", "source.nim")
+registry.addGrammar(hostRawGrammar)
+let host = registry.loadGrammar(hostRawGrammar.scopeName)
+```
+
 ## Current scope
 
 Matter supports JSON and XML plist grammars, match and begin/end or begin/while
 rules, captures (including nested capture patterns), repositories/includes,
-injections, selectors, dynamic capture substitutions, and incremental line
-tokenization. `parseRawGrammar` raises `RawGrammarError` for malformed input;
+injections, selectors, dynamic capture substitutions, runtime embedded-language
+dispatch, and incremental line tokenization. `parseRawGrammar` raises
+`RawGrammarError` for malformed input;
 grammar registration and compilation failures raise `MatterError`. Both are
 catchable errors.
 
