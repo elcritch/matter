@@ -1,4 +1,4 @@
-import std/[options, os, sequtils, strutils, tables, tempfiles, unittest]
+import std/[json, options, os, sequtils, strutils, tables, tempfiles, unittest]
 
 import matter/[engine, grammarloader, grammarpackages]
 import zippy/ziparchives
@@ -57,6 +57,45 @@ suite "grammar package loader":
     check "source.nim" in loaded.loadedScopeNames
     check "source.nimble" in loaded.loadedScopeNames
     discard registry.loadGrammar("source.nim")
+
+  test "bundled Markdown dispatches registered language IDs at runtime":
+    let root = currentSourcePath.parentDir.parentDir
+    let registry = newRegistry()
+    let source = zipResourceSource(root)
+    let loaded = registry.loadGrammarPackage(
+      source,
+      [
+        "text.html.markdown", "source.nim", "source.hcl.terraform", "source.tofu-plan",
+        "source.cabal",
+      ],
+    )
+    check "source.nim" in loaded.loadedScopeNames
+    check "source.hcl.terraform" in loaded.loadedScopeNames
+    check "source.cabal" in loaded.loadedScopeNames
+
+    let markdownSource = source(markdownGrammar)
+    require markdownSource.isSome
+    let raw = parseJson(markdownSource.get)
+    let key = "matter_fenced_code_block_registered_language"
+    require raw["repository"].hasKey(key)
+    let dynamic = raw["repository"][key]
+    check dynamic["matterEmbeddedLanguage"].getStr == "${4:/downcase}"
+    check raw["repository"]["fenced_code_block"]["patterns"][0]["include"].getStr ==
+      "#" & key
+
+    let markdown = registry.loadGrammar("text.html.markdown")
+    for (languageId, bodySource, syntaxScope) in [
+      ("nim", "proc answer() = discard", "entity.name.function.nim"),
+      ("terraform", "resource \"example\" \"main\" {}", "entity.name.type.terraform"),
+      ("tofu-plan", "  + name = \"example\"", "markup.inserted.marker.tofu-plan"),
+      ("cabal", "name: example", "keyword.other.cabal"),
+    ]:
+      let opening = markdown.tokenizeLine("```" & languageId)
+      check not opening.stoppedEarly
+      let body = markdown.tokenizeLine(bodySource, opening.completedRuleStack)
+      check not body.stoppedEarly
+      check body.tokens.anyIt("meta.embedded.block." & languageId in it.scopes)
+      check body.tokens.anyIt(syntaxScope in it.scopes)
 
   test "loads bundled Terraform source and plan grammars":
     let root = currentSourcePath.parentDir.parentDir

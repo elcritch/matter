@@ -13,6 +13,7 @@ const jsonGrammar =
     "main": {
       "begin": "(\\[)",
       "end": "(\\])",
+      "matterEmbeddedLanguage": "${1:/downcase}",
       "applyEndPatternLast": true,
       "captures": {"1": {"name": "punctuation.definition.example"}},
       "beginCaptures": {},
@@ -35,6 +36,7 @@ const plistGrammar =
   <key>repository</key><dict><key>main</key><dict>
     <key>begin</key><string>(\[)</string>
     <key>end</key><string>(\])</string>
+    <key>matterEmbeddedLanguage</key><string>${1:/downcase}</string>
     <key>applyEndPatternLast</key><integer>1</integer>
     <key>captures</key><dict><key>1</key><dict><key>name</key><string>punctuation.definition.example</string></dict></dict>
     <key>beginCaptures</key><dict></dict>
@@ -58,6 +60,8 @@ suite "raw grammar parsing":
     let plistRule = plist.repository["main"]
     check jsonRule.begin == plistRule.begin
     check jsonRule.`end` == plistRule.`end`
+    check jsonRule.matterEmbeddedLanguage == "${1:/downcase}"
+    check jsonRule.matterEmbeddedLanguage == plistRule.matterEmbeddedLanguage
     check jsonRule.applyEndPatternLast
     check plistRule.applyEndPatternLast
     check jsonRule.hasCaptures

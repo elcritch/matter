@@ -23,12 +23,13 @@ type
 
   CompiledRule = ref object
     kind: RuleKind
-    name, contentName: string
+    name, contentName, matterEmbeddedLanguage: string
     matchSource, beginSource, endSource, whileSource: string
     matchRegex, beginRegex: Regex
     captures, beginCaptures, endCaptures, whileCaptures:
       OrderedTable[int, CompiledCapture]
     patterns: seq[CompiledRule]
+    embeddedLanguages: Table[string, CompiledRule]
     applyEndPatternLast: bool
 
   Injection = object
@@ -76,6 +77,7 @@ type
   Registry* = ref object
     grammars: OrderedTable[string, RawGrammar]
     injectionScopes: Table[string, seq[string]]
+    languageScopes: Table[string, string]
     theme: Theme
 
   Grammar* = ref object
@@ -98,6 +100,7 @@ type
     isRoot: bool
     isFirstLine: bool
     beginRuleCapturedEol: bool
+    embeddedRule: CompiledRule
 
   StateStackFrame* = object
     ## An opaque immutable frame snapshot used to transport state-stack diffs.
@@ -107,6 +110,7 @@ type
     hasEndRegex: bool
     enterPos, anchorPos: int
     isRoot, isFirstLine, beginRuleCapturedEol: bool
+    embeddedRule: CompiledRule
 
   StackDiff* = object
     ## A physical-identity diff: pop ``pops`` frames, then push ``newFrames``.
@@ -139,6 +143,8 @@ type
     found: bool
     kind: CandidateKind
     rule: CompiledRule
+    endState: StateStack
+    embeddedRule: CompiledRule
     matched: Match
 
   CompilationCache = object
@@ -181,6 +187,7 @@ proc newRegistry*(): Registry =
   Registry(
     grammars: initOrderedTable[string, RawGrammar](),
     injectionScopes: initTable[string, seq[string]](),
+    languageScopes: initTable[string, string](),
     theme: newTheme(RawTheme()),
   )
 
@@ -228,6 +235,18 @@ proc addGrammar*(registry: Registry, grammar: RawGrammar) =
       let scope = target.strip(chars = {' ', 'L', 'R', ':'})
       if scope.len > 0:
         registry.injectionScopes.mgetOrPut(scope, @[]).add(grammar.scopeName)
+
+proc registerLanguage*(registry: Registry, languageId, scopeName: string) =
+  ## Register a runtime language ID for an already-added grammar scope.
+  ##
+  ## Language IDs are matched case-insensitively. Register languages before
+  ## loading a host grammar that uses ``matterEmbeddedLanguage`` rules.
+  let normalized = languageId.strip().toLowerAscii()
+  if normalized.len == 0:
+    raise newException(MatterError, "language ID must not be empty")
+  if not registry.grammars.hasKey(scopeName):
+    raise newException(MatterError, "no grammar registered for " & scopeName)
+  registry.languageScopes[normalized] = scopeName
 
 proc addGrammar*(
     registry: Registry, grammar: RawGrammar, hostScopes: openArray[string]
@@ -392,7 +411,7 @@ proc `==`*(a, b: StateStack): bool =
     (not a.hasEndRegex or a.endRegex.pattern == b.endRegex.pattern) and
     a.enterPos == b.enterPos and a.anchorPos == b.anchorPos and a.isRoot == b.isRoot and
     a.isFirstLine == b.isFirstLine and a.beginRuleCapturedEol == b.beginRuleCapturedEol and
-    a.parent == b.parent
+    a.embeddedRule == b.embeddedRule and a.parent == b.parent
 
 proc copyScopes(scopes: seq[string]): seq[string] =
   result = newSeqOfCap[string](scopes.len)
@@ -424,6 +443,32 @@ proc mergedRepository(parent, child: RawRepository): RawRepository =
     result[key] = value
   for key, value in child:
     result[key] = value
+
+proc compileExternalRule(
+    registry: Registry,
+    scopeName, repositoryName: string,
+    base: RawRule,
+    cache: var CompilationCache,
+): CompiledRule =
+  if not registry.grammars.hasKey(scopeName):
+    return
+  let external = registry.grammars[scopeName]
+  let externalRoot =
+    RawRule(patterns: external.patterns, repository: external.repository)
+  cache.externalRoots.add(externalRoot)
+  var externalRepo =
+    mergedRepository(external.repository, initOrderedTable[string, RawRule]())
+  externalRepo["$self"] = externalRoot
+  externalRepo["$base"] = base
+  let raw =
+    if repositoryName.len == 0:
+      externalRoot
+    elif externalRepo.hasKey(repositoryName):
+      externalRepo[repositoryName]
+    else:
+      nil
+  if not raw.isNil:
+    result = compileRule(external, externalRepo, base, raw, cache, registry)
 
 proc compilePatterns(
     grammar: RawGrammar,
@@ -458,27 +503,14 @@ proc compilePatterns(
           pattern.include
         else:
           pattern.include[0 ..< split]
-      if registry.grammars.hasKey(scope):
-        let external = registry.grammars[scope]
-        let externalRoot =
-          RawRule(patterns: external.patterns, repository: external.repository)
-        cache.externalRoots.add(externalRoot)
-        var externalRepo =
-          mergedRepository(external.repository, initOrderedTable[string, RawRule]())
-        externalRepo["$self"] = externalRoot
-        externalRepo["$base"] = base
+      let repositoryName =
         if split < 0:
-          result.add(
-            compileRule(external, externalRepo, base, externalRoot, cache, registry)
-          )
+          ""
         else:
-          let name = pattern.include[split + 1 ..^ 1]
-          if externalRepo.hasKey(name):
-            result.add(
-              compileRule(
-                external, externalRepo, base, externalRepo[name], cache, registry
-              )
-            )
+          pattern.include[split + 1 ..^ 1]
+      let compiled = compileExternalRule(registry, scope, repositoryName, base, cache)
+      if not compiled.isNil:
+        result.add(compiled)
 
 proc compileCaptures(
     grammar: RawGrammar,
@@ -510,7 +542,13 @@ proc compileRule(
   let key = cast[pointer](raw)
   if cache.rules.hasKey(key):
     return cache.rules[key]
-  result = CompiledRule(name: raw.name, contentName: raw.contentName)
+  if raw.matterEmbeddedLanguage.len > 0 and raw.begin.len == 0:
+    raise newException(MatterError, "matterEmbeddedLanguage requires a begin rule")
+  result = CompiledRule(
+    name: raw.name,
+    contentName: raw.contentName,
+    matterEmbeddedLanguage: raw.matterEmbeddedLanguage,
+  )
   cache.rules[key] = result
   let localRepository = mergedRepository(repository, raw.repository)
   if raw.match.len > 0:
@@ -555,6 +593,12 @@ proc compileRule(
         cache,
         registry,
       )
+    if raw.matterEmbeddedLanguage.len > 0:
+      result.embeddedLanguages = initTable[string, CompiledRule]()
+      for languageId, scopeName in registry.languageScopes:
+        let embedded = compileExternalRule(registry, scopeName, "", base, cache)
+        if not embedded.isNil:
+          result.embeddedLanguages[languageId] = embedded
   else:
     result.kind = rkInclude
     result.patterns =
@@ -629,6 +673,7 @@ proc newState(
     isRoot = false,
     isFirstLine = false,
     beginRuleCapturedEol = false,
+    embeddedRule: CompiledRule = nil,
 ): StateStack =
   StateStack(
     parent: parent,
@@ -640,6 +685,7 @@ proc newState(
     isRoot: isRoot,
     isFirstLine: isFirstLine,
     beginRuleCapturedEol: beginRuleCapturedEol,
+    embeddedRule: embeddedRule,
   )
 
 proc initialState(grammar: Grammar): StateStack =
@@ -666,6 +712,7 @@ proc nextLineState(stack: StateStack, isTop = true): StateStack =
     isRoot: stack.isRoot,
     isFirstLine: false,
     beginRuleCapturedEol: stack.beginRuleCapturedEol,
+    embeddedRule: stack.embeddedRule,
   )
 
 proc withAnchor(stack: StateStack, anchorPos: int): StateStack =
@@ -681,6 +728,7 @@ proc withAnchor(stack: StateStack, anchorPos: int): StateStack =
     isRoot: stack.isRoot,
     isFirstLine: stack.isFirstLine,
     beginRuleCapturedEol: stack.beginRuleCapturedEol,
+    embeddedRule: stack.embeddedRule,
   )
 
 proc toStateStackFrame(stack: StateStack): StateStackFrame =
@@ -695,6 +743,7 @@ proc toStateStackFrame(stack: StateStack): StateStackFrame =
     isRoot: stack.isRoot,
     isFirstLine: stack.isFirstLine,
     beginRuleCapturedEol: stack.beginRuleCapturedEol,
+    embeddedRule: stack.embeddedRule,
   )
 
 proc diffStateStacksRefEq*(first, second: StateStack): StackDiff =
@@ -740,6 +789,7 @@ proc applyStateStackDiff*(stack: StateStack, diff: StackDiff): StateStack =
       isRoot: frame.isRoot,
       isFirstLine: frame.isFirstLine,
       beginRuleCapturedEol: frame.beginRuleCapturedEol,
+      embeddedRule: frame.embeddedRule,
     )
 
 proc tokenizeLine*(
@@ -1061,7 +1111,13 @@ proc findInRule(
       rule.beginSource, rule.beginRegex, line, position, anchorPos, isFirstLine
     )
     if m.found:
-      result = Candidate(found: true, kind: ckRule, rule: rule, matched: m)
+      let languageId =
+        dynamicName(rule.matterEmbeddedLanguage, line, m).strip().toLowerAscii()
+      let embeddedRule = rule.embeddedLanguages.getOrDefault(languageId)
+      if rule.matterEmbeddedLanguage.len == 0 or not embeddedRule.isNil:
+        result = Candidate(
+          found: true, kind: ckRule, rule: rule, embeddedRule: embeddedRule, matched: m
+        )
   of rkInclude:
     for child in rule.patterns:
       var candidate: Candidate
@@ -1080,7 +1136,10 @@ proc bestRule(
   findInRule(rule, line, position, anchorPos, isFirstLine, seen, result)
 
 proc bestChildRule(
-    rule: CompiledRule, line: string, position, anchorPos: int, isFirstLine: bool
+    rule, embeddedRule: CompiledRule,
+    line: string,
+    position, anchorPos: int,
+    isFirstLine: bool,
 ): Candidate =
   var seen = initHashSet[pointer]()
   for child in rule.patterns:
@@ -1089,6 +1148,42 @@ proc bestChildRule(
     if candidate.found and
         (not result.found or candidate.matched.matchSpan.a < result.matched.matchSpan.a):
       result = candidate
+  if not embeddedRule.isNil:
+    let candidate = bestRule(embeddedRule, line, position, anchorPos, isFirstLine)
+    if candidate.found and
+        (not result.found or candidate.matched.matchSpan.a < result.matched.matchSpan.a):
+      result = candidate
+
+proc bestEnd(
+    stack: StateStack, line: string, position: int, isFirstLine: bool
+): Candidate =
+  var
+    frame = stack
+    isActive = true
+  while not frame.isNil:
+    if frame.rule.kind == rkBeginEnd and (isActive or not frame.embeddedRule.isNil):
+      let ending = findRegex(
+        frame.endRegex.pattern, frame.endRegex, line, position, frame.anchorPos,
+        isFirstLine,
+      )
+      if ending.found and (
+        not result.found or ending.matchSpan.a < result.matched.matchSpan.a or
+        ending.matchSpan.a == result.matched.matchSpan.a and not frame.embeddedRule.isNil
+      ):
+        result = Candidate(found: true, kind: ckEnd, endState: frame, matched: ending)
+    isActive = false
+    frame = frame.parent
+
+proc preferEnd(candidate, ending: Candidate): Candidate =
+  result = candidate
+  if ending.found and (
+    not candidate.found or ending.matched.matchSpan.a < candidate.matched.matchSpan.a or
+    (
+      ending.matched.matchSpan.a == candidate.matched.matchSpan.a and
+      not ending.endState.rule.applyEndPatternLast
+    )
+  ):
+    result = ending
 
 proc tokenizeInto(
   grammar: Grammar,
@@ -1239,18 +1334,9 @@ proc tokenizeInto(
       if stack.isNil:
         bestRule(active, line, position, anchorPos, start == 0)
       else:
-        bestChildRule(active, line, position, anchorPos, start == 0)
-    if not stack.isNil and stack.rule.kind == rkBeginEnd:
-      let ending = findRegex(
-        stack.endRegex.pattern, stack.endRegex, line, position, anchorPos, start == 0
-      )
-      if ending.found and (
-        not candidate.found or ending.matchSpan.a < candidate.matched.matchSpan.a or (
-          ending.matchSpan.a == candidate.matched.matchSpan.a and
-          not stack.rule.applyEndPatternLast
-        )
-      ):
-        candidate = Candidate(found: true, kind: ckEnd, matched: ending)
+        bestChildRule(active, stack.embeddedRule, line, position, anchorPos, start == 0)
+    if not stack.isNil:
+      candidate = candidate.preferEnd(stack.bestEnd(line, position, start == 0))
     var injectionWon = false
     for injection in grammar.injections:
       if injection.selector.matches(scopeStack):
@@ -1270,13 +1356,14 @@ proc tokenizeInto(
     let span = candidate.matched.matchSpan
     addToken(tokens, position, span.a, scopeStack, visibleLength)
     if candidate.kind == ckEnd:
-      let closingScopes = stack.nameScopes
+      let closingState = candidate.endState
+      let closingScopes = closingState.nameScopes
       applyCaptures(
-        grammar, line, tokens, closingScopes, stack.rule.endCaptures, candidate.matched,
-        visibleLength,
+        grammar, line, tokens, closingScopes, closingState.rule.endCaptures,
+        candidate.matched, visibleLength,
       )
-      let old = stack
-      stack = stack.parent
+      let old = closingState
+      stack = closingState.parent
       scopeStack =
         if stack.isNil:
           @[grammar.scopeName]
@@ -1312,7 +1399,15 @@ proc tokenizeInto(
         let contentName = dynamicName(rule.contentName, line, candidate.matched)
         if contentName.len > 0:
           openedScopes.add(contentName)
-        let frame = newState(rule, stack, nameScopes, openedScopes, position, span.b)
+        let frame = newState(
+          rule,
+          stack,
+          nameScopes,
+          openedScopes,
+          position,
+          span.b,
+          embeddedRule = candidate.embeddedRule,
+        )
         if rule.kind == rkBeginEnd:
           frame.hasEndRegex = true
           frame.endRegex = resolvedRegex(
@@ -1375,19 +1470,10 @@ proc tokenizeLineImpl(
       if stack.isRoot:
         bestRule(stack.rule, scannedLine, position, anchorPos, isFirstLine)
       else:
-        bestChildRule(stack.rule, scannedLine, position, anchorPos, isFirstLine)
-    if stack.rule.kind == rkBeginEnd:
-      let ending = findRegex(
-        stack.endRegex.pattern, stack.endRegex, scannedLine, position, anchorPos,
-        isFirstLine,
-      )
-      if ending.found and (
-        not candidate.found or ending.matchSpan.a < candidate.matched.matchSpan.a or (
-          ending.matchSpan.a == candidate.matched.matchSpan.a and
-          not stack.rule.applyEndPatternLast
+        bestChildRule(
+          stack.rule, stack.embeddedRule, scannedLine, position, anchorPos, isFirstLine
         )
-      ):
-        candidate = Candidate(found: true, kind: ckEnd, matched: ending)
+    candidate = candidate.preferEnd(stack.bestEnd(scannedLine, position, isFirstLine))
     var injectionWon = false
     for injection in grammar.injections:
       if injection.selector.matches(scopes):
@@ -1409,13 +1495,14 @@ proc tokenizeLineImpl(
       let span = candidate.matched.matchSpan
       addToken(tokens, position, span.a, scopes, lineLength)
       if candidate.kind == ckEnd:
-        let closingScopes = stack.nameScopes
+        let closingState = candidate.endState
+        let closingScopes = closingState.nameScopes
         applyCaptures(
-          grammar, scannedLine, tokens, closingScopes, stack.rule.endCaptures,
+          grammar, scannedLine, tokens, closingScopes, closingState.rule.endCaptures,
           candidate.matched, lineLength,
         )
-        let old = stack
-        stack = stack.parent
+        let old = closingState
+        stack = closingState.parent
         if stack.isNil:
           stack = initialState(grammar)
         scopes = stack.scopes
@@ -1458,6 +1545,7 @@ proc tokenizeLineImpl(
             position,
             span.b,
             beginRuleCapturedEol = span.b == scannedLine.len,
+            embeddedRule = candidate.embeddedRule,
           )
           if rule.kind == rkBeginEnd:
             frame.hasEndRegex = true

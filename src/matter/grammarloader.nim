@@ -115,6 +115,12 @@ proc externalIncludes(grammar: RawGrammar): seq[string] =
   for _, rule in grammar.injections:
     collectIncludes(rule, result, seen)
 
+proc preferredLanguageScope(languageId: string): string =
+  for contribution in knownGrammars:
+    if contribution.languageId == languageId:
+      if result.len == 0 or contribution.isPrimary:
+        result = contribution.scopeName
+
 proc addUnresolved(
     result: var GrammarPackageLoadResult,
     includingScope, includeSource: string,
@@ -182,6 +188,12 @@ proc loadGrammarPackage*(
             MatterError, "grammar resource for " & scope & " declares " & raw.scopeName
           )
         registry.addGrammar(raw)
+        if contribution.get.languageId.len > 0 and
+            contribution.get.scopeName ==
+            preferredLanguageScope(contribution.get.languageId):
+          registry.registerLanguage(
+            contribution.get.languageId, contribution.get.scopeName
+          )
         result.loadedScopeNames.add(scope)
         for support in knownGrammars:
           if support.packageKey == contribution.get.packageKey and

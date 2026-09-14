@@ -96,6 +96,50 @@ def fixed_info(name: str) -> zipfile.ZipInfo:
   return info
 
 
+def markdown_fence_rule() -> dict:
+  """Create one Matter-native rule for registered embedded languages."""
+  return {
+    "begin": (
+      "(^|\\G)(\\s*)(`{3,}|~{3,})\\s*"
+      "(?i:(?:\\{\\.)?([-\\w+.]+)((\\s+|:|,|\\{|\\?)[^`]*)?\\}?\\s*$)"
+    ),
+    "name": "markup.fenced_code.block.markdown",
+    "contentName": "meta.embedded.block.${4:/downcase}",
+    "matterEmbeddedLanguage": "${4:/downcase}",
+    "end": "(^|\\G)(\\2|\\s{0,3})(\\3)\\s*$",
+    "beginCaptures": {
+      "3": {"name": "punctuation.definition.markdown"},
+      "4": {"name": "fenced_code.block.language.markdown"},
+      "5": {"name": "fenced_code.block.language.attributes.markdown"},
+    },
+    "endCaptures": {
+      "3": {"name": "punctuation.definition.markdown"},
+    },
+  }
+
+
+def patch_markdown_grammar(contents: bytes) -> bytes:
+  """Add runtime dispatch for Matter-registered fenced-code languages."""
+  grammar = json.loads(contents)
+  repository = grammar["repository"]
+  fenced = repository["fenced_code_block"]
+  key = "matter_fenced_code_block_registered_language"
+  if key in repository:
+    raise RuntimeError(f"Markdown grammar already contains generated rule {key}")
+  repository[key] = markdown_fence_rule()
+  fenced["patterns"].insert(0, {"include": "#" + key})
+  return json.dumps(grammar, ensure_ascii=False, separators=(",", ":")).encode()
+
+
+def patch_grammar_member(
+    package: dict, member: str, contents: bytes
+) -> bytes:
+  if (package_id(package) == "vscode.markdown" and
+      member == "grammar/syntaxes/markdown.tmLanguage.json"):
+    return patch_markdown_grammar(contents)
+  return contents
+
+
 def write_archive(package: dict, source: Path, destination: Path) -> dict:
   with zipfile.ZipFile(source) as source_archive:
     names = source_archive.namelist()
@@ -121,12 +165,17 @@ def write_archive(package: dict, source: Path, destination: Path) -> dict:
       "sourceVsixMember" if source_kind(package) == "vsix" else "sourceArchiveMember"
     )
     provenance[provenance_member] = {member: original for member, original in needed}
+    if package_id(package) == "vscode.markdown":
+      provenance["matterPatches"] = ["runtime_fenced_code_language_dispatch"]
     members = {
       "LICENSE": source_archive.read(license_file),
       "package.json": source_archive.read(package_json),
       "PROVENANCE.json": (json.dumps(provenance, indent=2, sort_keys=True) + "\n").encode(),
     }
-    members.update({member: source_archive.read(original) for member, original in needed})
+    for member, original in needed:
+      members[member] = patch_grammar_member(
+        package, member, source_archive.read(original)
+      )
   destination.parent.mkdir(parents=True, exist_ok=True)
   with zipfile.ZipFile(destination, "w") as archive:
     for name in sorted(members):

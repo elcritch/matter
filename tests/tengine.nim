@@ -174,6 +174,69 @@ suite "matter engine":
     check result.tokens.anyIt("keyword.inner" in it.scopes)
     check result.ruleStack.depth == 1
 
+  test "dispatches registered embedded languages from a dynamic begin capture":
+    let registry = newRegistry()
+    registry.addGrammar(
+      parseRawGrammar(
+        """
+      { "scopeName": "source.embedded", "patterns": [
+        { "match": "\\b(proc|let)\\b", "name": "keyword.embedded" },
+        { "begin": "\"", "end": "\"", "name": "string.embedded" }
+      ] }
+    """,
+        "embedded.json",
+      )
+    )
+    registry.registerLanguage("nim", "source.embedded")
+    registry.addGrammar(
+      parseRawGrammar(
+        """
+      { "scopeName": "text.host", "patterns": [
+        {
+          "begin": "```(\\w+)", "end": "```",
+          "name": "markup.fenced", "contentName": "meta.embedded.${1:/downcase}",
+          "matterEmbeddedLanguage": "${1:/downcase}"
+        },
+        { "begin": "```\\w+", "end": "```", "name": "markup.fallback" }
+      ] }
+    """,
+        "host.json",
+      )
+    )
+    let host = registry.loadGrammar("text.host")
+    let opening = host.tokenizeLine("```NIM")
+    let firstBody = host.tokenizeLine("proc answer =", opening.completedRuleStack)
+    check firstBody.tokens.anyIt("keyword.embedded" in it.scopes)
+    check firstBody.tokens.anyIt("meta.embedded.nim" in it.scopes)
+
+    let unclosed = host.tokenizeLine("\"let", firstBody.completedRuleStack)
+    check unclosed.ruleStack.depth == 3
+    let restored =
+      applyStateStackDiff(nil, diffStateStacksRefEq(nil, unclosed.completedRuleStack))
+    check restored == unclosed.ruleStack
+    let closing = host.tokenizeLine("```", restored)
+    check closing.ruleStack.depth == 1
+
+    let unknown = host.tokenizeLine("```unknown")
+    check unknown.ruleStack.hasActiveScope("markup.fallback")
+
+  test "validates runtime language registration and dynamic rule placement":
+    let registry = newRegistry()
+    expect MatterError:
+      registry.registerLanguage("", "source.missing")
+    expect MatterError:
+      registry.registerLanguage("missing", "source.missing")
+    registry.addGrammar(
+      parseRawGrammar(
+        """{ "scopeName": "source.test", "patterns": [{
+          "match": "x", "matterEmbeddedLanguage": "language"
+        }] }""",
+        "invalid-embedded.json",
+      )
+    )
+    expect MatterError:
+      discard registry.loadGrammar("source.test")
+
   test "scans a synthetic newline without emitting it":
     let tested = grammar(
       """
