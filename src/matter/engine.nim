@@ -21,7 +21,14 @@ type
     name, contentName: string
     rule: CompiledRule
 
-  CompiledRule = ref object
+  CompiledRule = ptr CompiledRuleObj
+
+  CompiledRuleGraph = ref object
+    ## Own every rule once; recursive include/capture edges only borrow nodes.
+    rules: seq[ref CompiledRuleObj]
+
+  CompiledRuleObj = object
+    graph {.cursor.}: CompiledRuleGraph
     kind: RuleKind
     name, contentName, matterEmbeddedLanguage: string
     matchSource, beginSource, endSource, whileSource: string
@@ -82,6 +89,7 @@ type
 
   Grammar* = ref object
     scopeName: string
+    ruleGraph: CompiledRuleGraph
     root: CompiledRule
     injections: seq[Injection]
     registry: Registry
@@ -89,6 +97,7 @@ type
 
   StateStack* = ref object
     ## An immutable active begin/end or begin/while nesting frame.
+    ruleGraph: CompiledRuleGraph
     parent: StateStack
     rule: CompiledRule
     nameScopes: seq[string]
@@ -104,6 +113,7 @@ type
 
   StateStackFrame* = object
     ## An opaque immutable frame snapshot used to transport state-stack diffs.
+    ruleGraph: CompiledRuleGraph
     rule: CompiledRule
     nameScopes, scopes: seq[string]
     endRegex: Regex
@@ -148,6 +158,7 @@ type
     matched: Match
 
   CompilationCache = object
+    graph: CompiledRuleGraph
     rules: Table[pointer, CompiledRule]
     externalRoots: seq[RawRule]
       ## Keep synthetic external roots alive so their pointer identities cannot
@@ -169,6 +180,7 @@ proc searchWithContext(subject: string, regex: Regex, start: int): Match =
   ## Reuse reni's per-thread scratch buffers across all tokenizer probes.
   if matchContext.isNil:
     matchContext = newMatchContext(regex.captureCount)
+  var failure: string
   try:
     discard searchIntoCtx(
       matchContext,
@@ -179,8 +191,10 @@ proc searchWithContext(subject: string, regex: Regex, start: int): Match =
       stepLimit =
         if activeRegexStepLimit > 0: activeRegexStepLimit else: DefaultStepLimit,
     )
+    return
   except RegexLimitError as error:
-    raise newException(RegexProbeLimitError, error.msg)
+    failure = error.msg
+  raise newException(RegexProbeLimitError, failure)
 
 proc newRegistry*(): Registry =
   ## Create an empty grammar registry with the default TextMate theme.
@@ -285,10 +299,13 @@ proc resolveAnchors(source: string, allowA = true, allowG = true): string =
 
 proc regexFor(source, context: string, allowA = true, allowG = true): Regex =
   let normalized = resolveAnchors(source, allowA, allowG)
+  var failure: string
   try:
-    re(normalized)
+    return re(normalized)
   except RegexError as error:
-    raise newException(MatterError, "invalid regex in " & context & ": " & error.msg)
+    failure = "invalid regex in " & context & ": " & error.msg
+  # Leave the handler before raising the wrapper so ARC releases the caught error.
+  raise newException(MatterError, failure)
 
 proc hasUnescapedAnchor(source: string, anchor: char): bool =
   var position = 0
@@ -544,11 +561,15 @@ proc compileRule(
     return cache.rules[key]
   if raw.matterEmbeddedLanguage.len > 0 and raw.begin.len == 0:
     raise newException(MatterError, "matterEmbeddedLanguage requires a begin rule")
-  result = CompiledRule(
+  let owned = new CompiledRuleObj
+  owned[] = CompiledRuleObj(
+    graph: cache.graph,
     name: raw.name,
     contentName: raw.contentName,
     matterEmbeddedLanguage: raw.matterEmbeddedLanguage,
   )
+  cache.graph.rules.add(owned)
+  result = addr owned[]
   cache.rules[key] = result
   let localRepository = mergedRepository(repository, raw.repository)
   if raw.match.len > 0:
@@ -615,12 +636,17 @@ proc loadGrammar*(
   var repository = raw.repository
   repository["$self"] = rootRaw
   repository["$base"] = rootRaw
-  var cache = CompilationCache(rules: initTable[pointer, CompiledRule]())
+  var cache = CompilationCache(
+    graph: CompiledRuleGraph(), rules: initTable[pointer, CompiledRule]()
+  )
+  let root = compileRule(raw, repository, rootRaw, rootRaw, cache, registry)
+  let compiledConfiguration = compileConfiguration(configuration)
   result = Grammar(
     scopeName: scopeName,
-    root: compileRule(raw, repository, rootRaw, rootRaw, cache, registry),
+    ruleGraph: cache.graph,
+    root: root,
     registry: registry,
-    configuration: compileConfiguration(configuration),
+    configuration: compiledConfiguration,
   )
   var injectionNames = registry.injectionScopes.getOrDefault(scopeName)
   for name in registry.grammars.keys:
@@ -637,7 +663,9 @@ proc loadGrammar*(
         var injectionRepo = injectionGrammar.repository
         injectionRepo["$self"] = injectionRoot
         injectionRepo["$base"] = rootRaw
-        var injectionCache = CompilationCache(rules: initTable[pointer, CompiledRule]())
+        var injectionCache = CompilationCache(
+          graph: cache.graph, rules: initTable[pointer, CompiledRule]()
+        )
         result.injections.add(
           Injection(
             selector: selector,
@@ -676,6 +704,7 @@ proc newState(
     embeddedRule: CompiledRule = nil,
 ): StateStack =
   StateStack(
+    ruleGraph: rule.graph,
     parent: parent,
     rule: rule,
     nameScopes: nameScopes,
@@ -697,6 +726,7 @@ proc nextLineState(stack: StateStack, isTop = true): StateStack =
   # Reviving an enclosing anchor after a child ends reopens YAML scalars
   # at each dedent instead of allowing the enclosing block rule to end.
   StateStack(
+    ruleGraph: stack.ruleGraph,
     parent:
       if stack.parent.isNil:
         nil
@@ -717,6 +747,7 @@ proc nextLineState(stack: StateStack, isTop = true): StateStack =
 
 proc withAnchor(stack: StateStack, anchorPos: int): StateStack =
   StateStack(
+    ruleGraph: stack.ruleGraph,
     parent: stack.parent,
     rule: stack.rule,
     nameScopes: stack.nameScopes,
@@ -733,6 +764,7 @@ proc withAnchor(stack: StateStack, anchorPos: int): StateStack =
 
 proc toStateStackFrame(stack: StateStack): StateStackFrame =
   StateStackFrame(
+    ruleGraph: stack.ruleGraph,
     rule: stack.rule,
     nameScopes: stack.nameScopes,
     scopes: stack.scopes,
@@ -778,6 +810,7 @@ proc applyStateStackDiff*(stack: StateStack, diff: StackDiff): StateStack =
     if frame.rule.isNil:
       raise newException(MatterError, "state-stack diff contains an invalid frame")
     result = StateStack(
+      ruleGraph: frame.ruleGraph,
       parent: result,
       rule: frame.rule,
       nameScopes: frame.nameScopes,
@@ -1584,16 +1617,18 @@ proc tokenizeLine*(
     if timeLimitMs > 0: MatterTimedRegexStepLimit else: DefaultStepLimit
   defer:
     activeRegexStepLimit = previousRegexStepLimit
+  var failure: string
   try:
-    result = grammar.tokenizeLineImpl(line, previousState, timeLimitMs)
+    return grammar.tokenizeLineImpl(line, previousState, timeLimitMs)
   except RegexProbeLimitError as error:
-    if timeLimitMs <= 0:
-      raise newException(MatterError, "regex matching limit exceeded: " & error.msg)
-    let stack =
-      if previousState.isNil:
-        initialState(grammar)
-      else:
-        previousState
-    var tokens: seq[Token]
-    addToken(tokens, 0, line.len, stack.scopes, line.len)
-    result = plainResult(grammar, tokens, stack, true)
+    failure = error.msg
+  if timeLimitMs <= 0:
+    raise newException(MatterError, "regex matching limit exceeded: " & failure)
+  let stack =
+    if previousState.isNil:
+      initialState(grammar)
+    else:
+      previousState
+  var tokens: seq[Token]
+  addToken(tokens, 0, line.len, stack.scopes, line.len)
+  result = plainResult(grammar, tokens, stack, true)
