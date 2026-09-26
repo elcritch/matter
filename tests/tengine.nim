@@ -33,29 +33,51 @@ suite "matter engine":
       check getOccupiedMem() - before < 16_384
 
     test "failed recursive grammar compilation releases partial graphs":
-      let registry = newRegistry()
-      registry.addGrammar(
-        parseRawGrammar(
-          """
-        { "scopeName": "source.invalid", "patterns": [
-          { "include": "$self" }, { "matterEmbeddedLanguage": "nim" }
-        ] }
-      """,
-          "invalid.json",
-        )
-      )
-      proc compileAndDrop() {.noinline.} =
+      proc compileAndDrop(registry: Registry) {.noinline.} =
         try:
           discard registry.loadGrammar("source.invalid")
-          doAssert false, "embedded language without a begin rule must fail"
+          doAssert false, "invalid rule must fail to compile"
         except MatterError:
           discard
 
-      compileAndDrop()
-      let before = getOccupiedMem()
-      for _ in 0 ..< 100:
-        compileAndDrop()
-      check getOccupiedMem() - before < 16_384
+      for invalidRule in ["""{"matterEmbeddedLanguage":"nim"}""", """{"match":"("}"""]:
+        let registry = newRegistry()
+        registry.addGrammar(
+          parseRawGrammar(
+            """{"scopeName":"source.invalid","patterns":[{"include":"$self"},RULE]}""".replace(
+              "RULE", invalidRule
+            ),
+            "invalid.json",
+          )
+        )
+        compileAndDrop(registry)
+        let before = getOccupiedMem()
+        for _ in 0 ..< 100:
+          compileAndDrop(registry)
+        check getOccupiedMem() - before < 16_384
+
+    test "regex limit failures release caught exceptions":
+      let tested = grammar(
+        """
+        { "scopeName": "source.test", "patterns": [{ "match": "(a+)+b" }] }
+      """
+      )
+      let source = "a".repeat(30)
+      proc tokenizeAndDrop(
+          tested: Grammar, source: string, timeLimit: int
+      ) {.noinline.} =
+        try:
+          let parsed = tested.tokenizeLine(source, timeLimitMs = timeLimit)
+          doAssert timeLimit > 0 and parsed.stoppedEarly
+        except MatterError:
+          doAssert timeLimit == 0
+
+      for timeLimit in [0, 10_000]:
+        tokenizeAndDrop(tested, source, timeLimit)
+        let before = getOccupiedMem()
+        for _ in 0 ..< 32:
+          tokenizeAndDrop(tested, source, timeLimit)
+        check getOccupiedMem() - before < 4096
 
   test "matches in pattern order at the same offset":
     let tested = grammar(

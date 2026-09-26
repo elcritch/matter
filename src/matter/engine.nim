@@ -180,6 +180,7 @@ proc searchWithContext(subject: string, regex: Regex, start: int): Match =
   ## Reuse reni's per-thread scratch buffers across all tokenizer probes.
   if matchContext.isNil:
     matchContext = newMatchContext(regex.captureCount)
+  var failure: string
   try:
     discard searchIntoCtx(
       matchContext,
@@ -190,8 +191,10 @@ proc searchWithContext(subject: string, regex: Regex, start: int): Match =
       stepLimit =
         if activeRegexStepLimit > 0: activeRegexStepLimit else: DefaultStepLimit,
     )
+    return
   except RegexLimitError as error:
-    raise newException(RegexProbeLimitError, error.msg)
+    failure = error.msg
+  raise newException(RegexProbeLimitError, failure)
 
 proc newRegistry*(): Registry =
   ## Create an empty grammar registry with the default TextMate theme.
@@ -296,10 +299,13 @@ proc resolveAnchors(source: string, allowA = true, allowG = true): string =
 
 proc regexFor(source, context: string, allowA = true, allowG = true): Regex =
   let normalized = resolveAnchors(source, allowA, allowG)
+  var failure: string
   try:
-    re(normalized)
+    return re(normalized)
   except RegexError as error:
-    raise newException(MatterError, "invalid regex in " & context & ": " & error.msg)
+    failure = "invalid regex in " & context & ": " & error.msg
+  # Leave the handler before raising the wrapper so ARC releases the caught error.
+  raise newException(MatterError, failure)
 
 proc hasUnescapedAnchor(source: string, anchor: char): bool =
   var position = 0
@@ -1611,16 +1617,18 @@ proc tokenizeLine*(
     if timeLimitMs > 0: MatterTimedRegexStepLimit else: DefaultStepLimit
   defer:
     activeRegexStepLimit = previousRegexStepLimit
+  var failure: string
   try:
-    result = grammar.tokenizeLineImpl(line, previousState, timeLimitMs)
+    return grammar.tokenizeLineImpl(line, previousState, timeLimitMs)
   except RegexProbeLimitError as error:
-    if timeLimitMs <= 0:
-      raise newException(MatterError, "regex matching limit exceeded: " & error.msg)
-    let stack =
-      if previousState.isNil:
-        initialState(grammar)
-      else:
-        previousState
-    var tokens: seq[Token]
-    addToken(tokens, 0, line.len, stack.scopes, line.len)
-    result = plainResult(grammar, tokens, stack, true)
+    failure = error.msg
+  if timeLimitMs <= 0:
+    raise newException(MatterError, "regex matching limit exceeded: " & failure)
+  let stack =
+    if previousState.isNil:
+      initialState(grammar)
+    else:
+      previousState
+  var tokens: seq[Token]
+  addToken(tokens, 0, line.len, stack.scopes, line.len)
+  result = plainResult(grammar, tokens, stack, true)
