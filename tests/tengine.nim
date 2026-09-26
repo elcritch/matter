@@ -8,6 +8,55 @@ proc grammar(source: string): Grammar =
   registry.loadGrammar("source.test")
 
 suite "matter engine":
+  when not defined(useMalloc) and (defined(gcArc) or defined(gcAtomicArc)):
+    test "recursive grammar graphs are reclaimed without cycle collection":
+      let registry = newRegistry()
+      registry.addGrammar(
+        parseRawGrammar(
+          """
+        { "scopeName": "source.recursive", "patterns": [{
+          "begin": "\\[", "end": "\\]", "name": "meta.square",
+          "patterns": [{ "include": "$self" }],
+          "beginCaptures": { "0": { "patterns": [{ "include": "$base" }] } }
+        }] }
+      """,
+          "recursive.json",
+        )
+      )
+      proc compileAndDrop() {.noinline.} =
+        discard registry.loadGrammar("source.recursive")
+
+      compileAndDrop()
+      let before = getOccupiedMem()
+      for _ in 0 ..< 100:
+        compileAndDrop()
+      check getOccupiedMem() - before < 16_384
+
+    test "failed recursive grammar compilation releases partial graphs":
+      let registry = newRegistry()
+      registry.addGrammar(
+        parseRawGrammar(
+          """
+        { "scopeName": "source.invalid", "patterns": [
+          { "include": "$self" }, { "matterEmbeddedLanguage": "nim" }
+        ] }
+      """,
+          "invalid.json",
+        )
+      )
+      proc compileAndDrop() {.noinline.} =
+        try:
+          discard registry.loadGrammar("source.invalid")
+          doAssert false, "embedded language without a begin rule must fail"
+        except MatterError:
+          discard
+
+      compileAndDrop()
+      let before = getOccupiedMem()
+      for _ in 0 ..< 100:
+        compileAndDrop()
+      check getOccupiedMem() - before < 16_384
+
   test "matches in pattern order at the same offset":
     let tested = grammar(
       """

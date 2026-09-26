@@ -265,3 +265,8 @@ echo getForeground(metadata), " ", getBackground(metadata), " ",
 offsets. Its `fonts` sequence contains coalesced font-family, font-size, and
 line-height spans. Use `diffStateStacksRefEq` and `applyStateStackDiff` to
 transport immutable rule-stack changes between tokenization calls.
+
+Compiled rules share an owned graph with non-owning recursive edges, so dropping
+a grammar releases its rules under ARC as well as ORC. Saved rule stacks and
+stack diffs retain the graph until they are released; callers can keep them
+after releasing the original grammar.
