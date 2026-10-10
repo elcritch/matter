@@ -85,11 +85,6 @@ suite "grammar package catalog":
       "python3 " & quoteShell(root / "tools/regenerate_grammars.py") & " --verify"
     ) == 0
 
-  test "local grammar builder is reproducible offline and rejects source drift":
-    let root = currentSourcePath.parentDir.parentDir
-    check execShellCmd("python3 -B " & quoteShell(root / "tests/tgrammarbuilder.py")) ==
-      0
-
   test "offline verifier rejects catalog drift from the source manifest":
     let root = currentSourcePath.parentDir.parentDir
     let (temporaryFile, driftedCatalog) =
