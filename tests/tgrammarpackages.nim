@@ -12,8 +12,8 @@ const moeModes = [
 
 suite "grammar package catalog":
   test "exposes pinned source and archive metadata":
-    check knownPackages.len == 30
-    check knownGrammars.len == 55
+    check knownPackages.len == 31
+    check knownGrammars.len == 56
     check nimVscodePackage.extensionId() == "nimsaem.nimvscode"
     check vscodeCppPackage.version == "1.95.3"
     check tomlPackage.licenseId == "MIT"
@@ -32,13 +32,19 @@ suite "grammar package catalog":
     check terraformPlanPackage.licenseId == "MIT"
     check terraformGrammar.scopeName == "source.hcl.terraform"
     check terraformPlanGrammar.scopeName == "source.tofu-plan"
+    check nifPackage.sourceKind == "local"
+    check nifGrammar.scopeName == "source.nif"
     for package in knownPackages:
       check package.licenseId.len > 0
       check package.repositoryUrl.startsWith("https://")
       check package.licenseUrl.startsWith("https://")
-      check package.downloadUrl.startsWith("https://")
       check package.dataArchivePath.startsWith("data/grammars/")
-      check package.sourceArchiveSha256.len == 64
+      if package.sourceKind == "local":
+        check package.downloadUrl.len == 0
+        check package.sourceArchiveSha256.len == 0
+      else:
+        check package.downloadUrl.startsWith("https://")
+        check package.sourceArchiveSha256.len == 64
       if package.sourceKind == "vsix":
         check package.sourceVsixSha256 == package.sourceArchiveSha256
       else:
@@ -78,6 +84,11 @@ suite "grammar package catalog":
     check execShellCmd(
       "python3 " & quoteShell(root / "tools/regenerate_grammars.py") & " --verify"
     ) == 0
+
+  test "local grammar builder is reproducible offline and rejects source drift":
+    let root = currentSourcePath.parentDir.parentDir
+    check execShellCmd("python3 -B " & quoteShell(root / "tests/tgrammarbuilder.py")) ==
+      0
 
   test "offline verifier rejects catalog drift from the source manifest":
     let root = currentSourcePath.parentDir.parentDir

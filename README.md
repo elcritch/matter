@@ -147,6 +147,36 @@ fenced-code dispatch rule. It works with any language registered before the
 Markdown grammar is loaded, rather than expanding the archive for each
 catalogued language.
 
+### NIF grammar
+
+[`grammars/nif/nif.tmLanguage.json`](grammars/nif/nif.tmLanguage.json) is a
+standalone TextMate grammar for `.nif` files with scope `source.nif`. It follows
+the [NIF 2027 specification](https://github.com/nim-lang/nifspec/blob/c24fe94ad485a4eb3f5dfc91d8e4470ca0ea866f/doc/nif-spec.md)
+for parenthesized nodes, extensible tags and directives, identifiers, symbols
+and definitions, decimal numbers, literals, escapes, and suffix locations and
+comments. A `(.nif26)` cookie at the beginning of the document selects legacy
+prefix locations and signed numbers. Headerless files use NIF 2027 syntax.
+The optional line-based command/log syntax is outside this grammar's scope.
+
+Load the bundled grammar with the regular package loader:
+
+```nim
+import std/os
+import matter/[engine, grammarloader, grammarpackages]
+
+let registry = newRegistry()
+discard registry.loadGrammarPackage(zipResourceSource(getCurrentDir()), nifGrammar.scopeName)
+let grammar = registry.loadGrammar(nifGrammar.scopeName)
+let tokens = grammar.tokenizeLine("(call write.1.sys \"Hello World!\")")
+```
+
+Loading it together with Markdown also enables `nif` fenced-code highlighting.
+`nifPackage` is authored locally under `grammars/nif/` and distributed as
+`matter-nif-1.0.0.zip`. Local packages have `sourceKind == "local"`, with empty
+upstream URL and source archive checksum fields; use Matter release URLs to
+download their ZIPs. Regeneration packages the local files directly, and offline
+verification checks that the archive matches them.
+
 ## Parse, register, and tokenize
 
 ```nim
