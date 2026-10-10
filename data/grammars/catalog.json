@@ -1631,6 +1631,50 @@
       "sourceKind": "github-archive",
       "sourceRoot": "tofu-plan-highlight-0edf2419e1323bd96db23712a960d2990dd3a323",
       "version": "0.1.0"
+    },
+    {
+      "archiveMembers": [
+        "LICENSE",
+        "PROVENANCE.json",
+        "grammar/nif.tmLanguage.json",
+        "package.json"
+      ],
+      "archiveSha256": "1e6fab6c48c0433e41f7cf7a05cb170aaf6482e01156660f8e4c61a0cb2635d8",
+      "constName": "nifPackage",
+      "dataArchivePath": "data/grammars/matter-nif-1.0.0.zip",
+      "downloadUrl": "",
+      "grammars": [
+        [
+          "nifGrammar",
+          "NIF",
+          "nif",
+          "source.nif",
+          "./nif.tmLanguage.json",
+          true
+        ]
+      ],
+      "licenseId": "MIT",
+      "licenseUrl": "https://github.com/elcritch/matter/blob/main/grammars/nif/LICENSE",
+      "name": "nif",
+      "namespace": "matter",
+      "provenance": {
+        "archiveFormat": "matter-textmate-grammar-archive-v1",
+        "licenseId": "MIT",
+        "licenseUrl": "https://github.com/elcritch/matter/blob/main/grammars/nif/LICENSE",
+        "package": "matter.nif",
+        "repositoryUrl": "https://github.com/elcritch/matter",
+        "sourceFiles": {
+          "grammar/nif.tmLanguage.json": "grammars/nif/nif.tmLanguage.json"
+        },
+        "sourceKind": "local",
+        "specificationUrl": "https://github.com/nim-lang/nifspec/blob/c24fe94ad485a4eb3f5dfc91d8e4470ca0ea866f/doc/nif-spec.md",
+        "version": "1.0.0"
+      },
+      "repositoryUrl": "https://github.com/elcritch/matter",
+      "sourceKind": "local",
+      "sourceRoot": "grammars/nif",
+      "specificationUrl": "https://github.com/nim-lang/nifspec/blob/c24fe94ad485a4eb3f5dfc91d8e4470ca0ea866f/doc/nif-spec.md",
+      "version": "1.0.0"
     }
   ],
   "sourceArchiveSha256": {

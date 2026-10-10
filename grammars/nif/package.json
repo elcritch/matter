@@ -1,0 +1,33 @@
+{
+  "name": "nif",
+  "publisher": "matter",
+  "displayName": "NIF",
+  "description": "TextMate grammar for the NIF intermediate format.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/elcritch/matter"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "nif",
+        "aliases": [
+          "NIF"
+        ],
+        "extensions": [
+          ".nif"
+        ],
+        "firstLine": "^\\(\\.nif[0-9]+\\)"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "nif",
+        "scopeName": "source.nif",
+        "path": "./nif.tmLanguage.json"
+      }
+    ]
+  }
+}

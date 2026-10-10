@@ -1,0 +1,395 @@
+{
+  "name": "NIF",
+  "scopeName": "source.nif",
+  "fileTypes": [
+    "nif"
+  ],
+  "firstLineMatch": "^\\(\\.nif[0-9]+\\)",
+  "comment": "Core NIF 2027 syntax, with NIF 2026 prefix annotations selected by (.nif26). Specification: https://github.com/nim-lang/nifspec/blob/c24fe94ad485a4eb3f5dfc91d8e4470ca0ea866f/doc/nif-spec.md",
+  "patterns": [
+    {
+      "include": "#legacy-document"
+    },
+    {
+      "include": "#nodes"
+    }
+  ],
+  "repository": {
+    "legacy-document": {
+      "comment": "The NIF 2026 magic cookie selects prefix line information and signed numbers for the document.",
+      "begin": "\\A(?=\\(\\.nif26\\))",
+      "end": "(?!)",
+      "name": "meta.version.26.nif",
+      "patterns": [
+        {
+          "include": "#nodes26"
+        }
+      ]
+    },
+    "nodes": {
+      "patterns": [
+        {
+          "include": "#location"
+        },
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#directive"
+        },
+        {
+          "include": "#node"
+        },
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#character"
+        },
+        {
+          "include": "#numbers"
+        },
+        {
+          "include": "#definition"
+        },
+        {
+          "include": "#symbol"
+        },
+        {
+          "include": "#identifier"
+        },
+        {
+          "include": "#empty"
+        }
+      ]
+    },
+    "nodes26": {
+      "patterns": [
+        {
+          "include": "#location26"
+        },
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#directive26"
+        },
+        {
+          "include": "#node26"
+        },
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#character"
+        },
+        {
+          "include": "#numbers26"
+        },
+        {
+          "include": "#definition"
+        },
+        {
+          "include": "#symbol"
+        },
+        {
+          "include": "#identifier"
+        },
+        {
+          "include": "#empty"
+        }
+      ]
+    },
+    "escape": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.nif",
+          "match": "\\\\(?:[0-9A-F]{2}|[ntr|^])"
+        },
+        {
+          "name": "invalid.illegal.escape.nif",
+          "match": "\\\\(?:[^\\r\\n]|$)"
+        }
+      ]
+    },
+    "comment": {
+      "name": "comment.block.nif",
+      "begin": "#",
+      "end": "#",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.comment.begin.nif"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.comment.end.nif"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#escape"
+        }
+      ]
+    },
+    "string": {
+      "name": "string.quoted.double.nif",
+      "begin": "\"",
+      "end": "\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.nif"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.nif"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#escape"
+        }
+      ]
+    },
+    "character": {
+      "name": "string.quoted.single.nif",
+      "begin": "'",
+      "end": "'|(?=$)",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.nif"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.nif"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#escape"
+        }
+      ]
+    },
+    "definition": {
+      "name": "meta.symbol.definition.nif",
+      "match": "(:)((?:[A-Za-z_]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))(?:[A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))*\\.(?:[A-Za-z_0-9.]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))*)",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.symbol.nif"
+        },
+        "2": {
+          "name": "entity.name.symbol.nif",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        }
+      }
+    },
+    "symbol": {
+      "match": "(?:[A-Za-z_]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))(?:[A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))*\\.(?:[A-Za-z_0-9.]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))*",
+      "captures": {
+        "0": {
+          "name": "variable.other.symbol.nif",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        }
+      }
+    },
+    "identifier": {
+      "match": "(?:[A-Za-z_]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))(?:[A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))*",
+      "captures": {
+        "0": {
+          "name": "variable.other.identifier.nif",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        }
+      }
+    },
+    "empty": {
+      "name": "constant.language.empty.nif",
+      "match": "\\."
+    },
+    "location": {
+      "name": "meta.annotation.location.nif",
+      "match": "(?:@(?:~[0-9A-Za-z]+|[0-9A-Za-z]*)|~[0-9A-Za-z]+)(?:,(?:~[0-9A-Za-z]+|[0-9A-Za-z]*)(?:,(?:\\\\(?:[0-9A-F]{2}|[ntr|^])|[^\\s()\\[\\]{}~#'\"\\\\:@])*)?)?",
+      "captures": {
+        "0": {
+          "name": "constant.other.location.nif",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        }
+      }
+    },
+    "location26": {
+      "name": "meta.annotation.location.nif",
+      "match": "(?:(?:~[0-9]+|[0-9]+)(?:,(?:~[0-9]+|[0-9]*)(?:,(?:\\\\(?:[0-9A-F]{2}|[ntr|^])|[^\\s()\\[\\]{}~#'\"\\\\:@])*)?)?|,(?:~[0-9]+|[0-9]*)(?:,(?:\\\\(?:[0-9A-F]{2}|[ntr|^])|[^\\s()\\[\\]{}~#'\"\\\\:@])*)?)",
+      "captures": {
+        "0": {
+          "name": "constant.other.location.nif",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        }
+      }
+    },
+    "node": {
+      "name": "meta.node.nif",
+      "begin": "(\\()[ \\t]*((?:[A-Za-z_]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))(?:[A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))*)",
+      "end": "\\)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.section.parens.begin.nif"
+        },
+        "2": {
+          "name": "entity.name.tag.nif",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.parens.end.nif"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#nodes"
+        }
+      ]
+    },
+    "directive": {
+      "name": "meta.directive.nif",
+      "begin": "(\\()[ \\t]*(\\.(?:[A-Za-z_]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))(?:[A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))*)",
+      "end": "\\)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.section.parens.begin.nif"
+        },
+        "2": {
+          "name": "keyword.control.directive.nif",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.parens.end.nif"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#nodes"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.nif",
+          "match": "-?[0-9]+(?:\\.[0-9]+(?:E[+-]?[0-9]+)?|E[+-]?[0-9]+)(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9])"
+        },
+        {
+          "name": "constant.numeric.unsigned.nif",
+          "match": "-?[0-9]+u(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9])"
+        },
+        {
+          "name": "constant.numeric.integer.nif",
+          "match": "-?[0-9]+(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9])"
+        }
+      ]
+    },
+    "node26": {
+      "name": "meta.node.nif",
+      "begin": "(\\()[ \\t]*((?:[A-Za-z_]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))(?:[A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))*)",
+      "end": "\\)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.section.parens.begin.nif"
+        },
+        "2": {
+          "name": "entity.name.tag.nif",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.parens.end.nif"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#nodes26"
+        }
+      ]
+    },
+    "directive26": {
+      "name": "meta.directive.nif",
+      "begin": "(\\()[ \\t]*(\\.(?:[A-Za-z_]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))(?:[A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))*)",
+      "end": "\\)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.section.parens.begin.nif"
+        },
+        "2": {
+          "name": "keyword.control.directive.nif",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.parens.end.nif"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#nodes26"
+        }
+      ]
+    },
+    "numbers26": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.nif",
+          "match": "[+-][0-9]+(?:\\.[0-9]+(?:E[+-]?[0-9]+)?|E[+-]?[0-9]+)(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9])"
+        },
+        {
+          "name": "constant.numeric.unsigned.nif",
+          "match": "[+-][0-9]+u(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9])"
+        },
+        {
+          "name": "constant.numeric.integer.nif",
+          "match": "[+-][0-9]+(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9])"
+        }
+      ]
+    }
+  }
+}

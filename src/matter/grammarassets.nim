@@ -7,7 +7,7 @@ import std/[json, options, strutils, uri]
 
 type
   GrammarReleaseAsset* = object
-    ## One bundled grammar ZIP and its pinned upstream source archive.
+    ## One bundled grammar ZIP, optionally with a pinned upstream source archive.
     packageKey*: string
     namespace*: string
     name*: string
@@ -72,7 +72,7 @@ func upstreamVsixUrl*(asset: GrammarReleaseAsset): string =
   asset.pinnedVsixUrl
 
 func upstreamArchiveUrl*(asset: GrammarReleaseAsset): string =
-  ## Returns the exact pinned upstream archive URL from which this asset was built.
+  ## Returns the pinned upstream archive URL, or empty for a local grammar.
   asset.pinnedSourceUrl
 
 func downloadUrl*(
@@ -80,6 +80,7 @@ func downloadUrl*(
 ): string =
   ## Returns a Matter release ZIP URL or the asset's pinned upstream archive URL.
   ## An empty `releaseTag` selects the latest Matter release.
+  ## `Upstream` returns empty for locally authored grammars.
   case source
   of MatterRelease:
     if releaseTag.len == 0:
