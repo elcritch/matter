@@ -4,7 +4,7 @@ import std/[algorithm, monotimes, options, sets, strutils, tables, times]
 
 import pkg/reni
 
-import ./[metadata, rawgrammar, selectors, theme]
+import ./[metadata, rawgrammar, regexcompat, selectors, theme]
 
 type
   MatterError* = object of ValueError ## A grammar could not be compiled or tokenized.
@@ -21,23 +21,29 @@ type
     name, contentName: string
     rule: CompiledRule
 
+  CompiledRegex = ref object
+    hasA, hasG: bool
+    variants: array[4, Regex]
+
   CompiledRule = ptr CompiledRuleObj
 
   CompiledRuleGraph = ref object
     ## Own every rule once; recursive include/capture edges only borrow nodes.
     rules: seq[ref CompiledRuleObj]
+    hasKeepAnchor: bool
 
   CompiledRuleObj = object
     graph {.cursor.}: CompiledRuleGraph
     kind: RuleKind
     name, contentName, matterEmbeddedLanguage: string
     matchSource, beginSource, endSource, whileSource: string
-    matchRegex, beginRegex: Regex
+    searchRegex: CompiledRegex
     captures, beginCaptures, endCaptures, whileCaptures:
       OrderedTable[int, CompiledCapture]
     patterns: seq[CompiledRule]
     embeddedLanguages: Table[string, CompiledRule]
     applyEndPatternLast: bool
+    cacheSearch, searchFromOrigin: bool
 
   Injection = object
     selector: ScopeSelector
@@ -157,9 +163,16 @@ type
     embeddedRule: CompiledRule
     matched: Match
 
+  CachedRuleMatch = object
+    position, anchorPos: int
+    matched: Match
+
+  RuleSearchCache = Table[pointer, CachedRuleMatch]
+
   CompilationCache = object
     graph: CompiledRuleGraph
     rules: Table[pointer, CompiledRule]
+    regexes: Table[string, CompiledRegex]
     externalRoots: seq[RawRule]
       ## Keep synthetic external roots alive so their pointer identities cannot
       ## be recycled while `rules` still uses those addresses as keys.
@@ -176,13 +189,16 @@ var
   matchContext {.threadvar.}: MatchContext
   activeRegexStepLimit {.threadvar.}: int
 
-proc searchWithContext(subject: string, regex: Regex, start: int): Match =
+proc searchWithContext(
+    subject: string, regex: Regex, start: int, anchored = false
+): Match =
   ## Reuse reni's per-thread scratch buffers across all tokenizer probes.
   if matchContext.isNil:
     matchContext = newMatchContext(regex.captureCount)
   var failure: string
   try:
-    discard searchIntoCtx(
+    let probe = if anchored: matchAtIntoCtx else: searchIntoCtx
+    discard probe(
       matchContext,
       subject,
       regex,
@@ -272,50 +288,38 @@ proc addGrammar*(
   for scope in hostScopes:
     registry.injectionScopes.mgetOrPut(scope, @[]).add(grammar.scopeName)
 
-proc resolveAnchors(source: string, allowA = true, allowG = true): string =
-  ## Keep real anchors when enabled; disable only the anchor branch otherwise.
-  var position = 0
-  while position < source.len:
-    if source[position] == '\\' and position + 1 < source.len:
-      let escaped = source[position + 1]
-      case escaped
-      of 'z':
-        result.add("$(?!\\n)(?<!\\n)")
-      of 'A':
-        result.add(if allowA: "\\A" else: "(?!)")
-      of 'G':
-        result.add(if allowG: "\\G" else: "(?!)")
-      of 'p', 'P':
-        if position + 2 < source.len and source[position + 2] == '{':
-          result.add(source[position])
-        result.add(escaped)
-      else:
-        result.add(source[position])
-        result.add(escaped)
-      position += 2
-    else:
-      result.add(source[position])
-      inc position
-
-proc regexFor(source, context: string, allowA = true, allowG = true): Regex =
-  let normalized = resolveAnchors(source, allowA, allowG)
+proc regexFor(
+    source, context: string, allowA = true, allowG = true, anchorsOnly = false
+): Regex =
   var failure: string
   try:
-    return re(normalized)
+    return re(textMateRegexSource(source, allowA, allowG, anchorsOnly))
   except RegexError as error:
     failure = "invalid regex in " & context & ": " & error.msg
   # Leave the handler before raising the wrapper so ARC releases the caught error.
   raise newException(MatterError, failure)
 
 proc hasUnescapedAnchor(source: string, anchor: char): bool =
-  var position = 0
-  while position + 1 < source.len:
-    if source[position] == '\\':
-      if source[position + 1] == anchor:
-        return true
-      position += 2
-    else:
-      inc position
+  if source.contains("\\" & $anchor):
+    return anchor in regexAnchors(source)
+
+proc compileSearchRegex(
+    source, context: string, cache: var CompilationCache
+): CompiledRegex =
+  if cache.regexes.hasKey(source):
+    return cache.regexes[source]
+  let regex = regexFor(source, context)
+  let anchors = regexAnchors(source)
+  result = CompiledRegex(hasA: 'A' in anchors, hasG: 'G' in anchors)
+  result.variants[0] = regex
+  for mask in 1 .. 3:
+    if ((mask and 1) != 0 and not result.hasA) or (
+      (mask and 2) != 0 and not result.hasG
+    ):
+      continue
+    result.variants[mask] =
+      regexFor(source, context, (mask and 1) == 0, (mask and 2) == 0)
+  cache.regexes[source] = result
 
 proc substituteCaptures(source, line: string, matched: Match): string =
   ## Substitute TextMate numeric backreferences with escaped matched text.
@@ -435,6 +439,11 @@ proc copyScopes(scopes: seq[string]): seq[string] =
   for scope in scopes:
     if scope.len > 0:
       result.add(scope)
+
+proc addScopes(scopes: var seq[string], names: string) =
+  ## TextMate name/contentName fields can push several space-separated scopes.
+  for name in names.splitWhitespace():
+    scopes.add(name)
 
 proc compileCaptures(
   grammar: RawGrammar,
@@ -575,12 +584,24 @@ proc compileRule(
   if raw.match.len > 0:
     result.kind = rkMatch
     result.matchSource = raw.match
-    result.matchRegex = regexFor(raw.match, grammar.scopeName & " match")
+    result.searchRegex =
+      compileSearchRegex(raw.match, grammar.scopeName & " match", cache)
+    result.cacheSearch = not result.searchRegex.hasG
+    result.searchFromOrigin =
+      not result.cacheSearch or rfFindLongest in result.searchRegex.variants[0].flags
+    cache.graph.hasKeepAnchor =
+      cache.graph.hasKeepAnchor or raw.match.hasUnescapedAnchor('K')
     result.captures =
       compileCaptures(grammar, localRepository, base, raw.captures, cache, registry)
   elif raw.begin.len > 0:
     result.beginSource = raw.begin
-    result.beginRegex = regexFor(raw.begin, grammar.scopeName & " begin")
+    result.searchRegex =
+      compileSearchRegex(raw.begin, grammar.scopeName & " begin", cache)
+    result.cacheSearch = not result.searchRegex.hasG
+    result.searchFromOrigin =
+      not result.cacheSearch or rfFindLongest in result.searchRegex.variants[0].flags
+    cache.graph.hasKeepAnchor =
+      cache.graph.hasKeepAnchor or raw.begin.hasUnescapedAnchor('K')
     result.patterns =
       compilePatterns(grammar, localRepository, base, raw.patterns, cache, registry)
     result.beginCaptures = compileCaptures(
@@ -834,7 +855,13 @@ proc addToken(
 ) =
   ## Plain tokens retain every tokenizer emission boundary. `tokenizeLine2`
   ## performs its own metadata coalescing where the reference permits it.
-  let boundedStart = min(start, visibleLength)
+  let boundedStart = max(
+    min(start, visibleLength),
+    if tokens.len == 0:
+      0
+    else:
+      tokens[^1].endIndex,
+  )
   let boundedStop = min(stop, visibleLength)
   if boundedStop <= boundedStart:
     return
@@ -1111,13 +1138,72 @@ proc findRegex(
     line: string,
     position, anchorPos: int,
     isFirstLine: bool,
+    anchored = false,
 ): Match =
   let disableA = not isFirstLine and source.hasUnescapedAnchor('A')
-  let disableG = position != anchorPos and source.hasUnescapedAnchor('G')
+  let hasG = source.hasUnescapedAnchor('G')
+  let disableG = position != anchorPos and hasG
+  if not anchored and hasG and not disableG and rfFindLongest notin regex.flags:
+    # Reni's scan hints can skip a mid-line \G alternative next to ^. A
+    # successful attempt at the original cursor is always the first match.
+    result = searchWithContext(line, regex, position, true)
+    if result.found:
+      return
   if not (disableA or disableG):
-    return searchWithContext(line, regex, position)
-  let anchored = regexFor(source, "anchored token", isFirstLine, position == anchorPos)
-  searchWithContext(line, anchored, position)
+    return searchWithContext(line, regex, position, anchored)
+  # The stored pattern already has capture and terminal-newline adaptations.
+  let resolved = regexFor(
+    regex.pattern, "anchored token", isFirstLine, not disableG, anchorsOnly = true
+  )
+  result = searchWithContext(line, resolved, position, anchored)
+
+proc findRuleRegex(
+    rule: CompiledRule,
+    line: string,
+    position, anchorPos: int,
+    isFirstLine: bool,
+    searchCache: var RuleSearchCache,
+    anchored = false,
+    searchOrigin = -1,
+): Match =
+  # A full search remains valid until its consumed start is passed. An
+  # anchored failure says nothing about later positions and is never cached.
+  # \G and (?L) require a full search from the original cursor even when
+  # probing a nearby position: \G can occur inside a lookbehind/lookahead.
+  let
+    origin = if anchored and rule.searchFromOrigin: searchOrigin else: position
+    key = cast[pointer](rule)
+  var reused = false
+  if searchCache.hasKey(key):
+    let cached = searchCache[key]
+    if (
+      rule.cacheSearch and cached.position <= origin and
+      (not cached.matched.found or cached.matched.startChar >= origin)
+    ) or (
+      not rule.cacheSearch and cached.position == origin and
+      cached.anchorPos == anchorPos
+    ):
+      result = cached.matched
+      reused = true
+  if not reused:
+    let atPosition = anchored and not rule.searchFromOrigin
+    let compiled = rule.searchRegex
+    let mask =
+      (if compiled.hasA and not isFirstLine: 1 else: 0) or
+      (if compiled.hasG and origin != anchorPos: 2 else: 0)
+    # Borrow the immutable variant; assigning this value normally copies
+    # Reni's compiled node, capture, and search-hint sequences on every probe.
+    let regex {.cursor.} = compiled.variants[mask]
+    if not atPosition and compiled.hasG and (mask and 2) == 0 and
+        rfFindLongest notin regex.flags:
+      result = searchWithContext(line, regex, origin, true)
+    if not result.found:
+      result = searchWithContext(line, regex, origin, atPosition)
+    if not atPosition or result.found:
+      searchCache[key] =
+        CachedRuleMatch(position: origin, anchorPos: anchorPos, matched: result)
+  if anchored and result.found and result.startChar != position:
+    result = Match()
 
 proc findInRule(
     rule: CompiledRule,
@@ -1126,7 +1212,10 @@ proc findInRule(
     anchorPos: int,
     isFirstLine: bool,
     seen: var HashSet[pointer],
+    searchCache: var RuleSearchCache,
     result: var Candidate,
+    anchored = false,
+    searchOrigin = -1,
 ) =
   let key = cast[pointer](rule)
   if key in seen:
@@ -1134,14 +1223,14 @@ proc findInRule(
   seen.incl(key)
   case rule.kind
   of rkMatch:
-    let m = findRegex(
-      rule.matchSource, rule.matchRegex, line, position, anchorPos, isFirstLine
+    let m = findRuleRegex(
+      rule, line, position, anchorPos, isFirstLine, searchCache, anchored, searchOrigin
     )
     if m.found:
       result = Candidate(found: true, kind: ckRule, rule: rule, matched: m)
   of rkBeginEnd, rkBeginWhile:
-    let m = findRegex(
-      rule.beginSource, rule.beginRegex, line, position, anchorPos, isFirstLine
+    let m = findRuleRegex(
+      rule, line, position, anchorPos, isFirstLine, searchCache, anchored, searchOrigin
     )
     if m.found:
       let languageId =
@@ -1154,38 +1243,104 @@ proc findInRule(
   of rkInclude:
     for child in rule.patterns:
       var candidate: Candidate
-      findInRule(child, line, position, anchorPos, isFirstLine, seen, candidate)
+      findInRule(
+        child, line, position, anchorPos, isFirstLine, seen, searchCache, candidate,
+        anchored, searchOrigin,
+      )
       if candidate.found and
           (
             not result.found or
             candidate.matched.matchSpan.a < result.matched.matchSpan.a
           ):
         result = candidate
+      # An earlier rule wins ties. \K in a lookbehind can report an earlier start.
+      if not rule.graph.hasKeepAnchor and result.found and
+          result.matched.matchSpan.a == position:
+        break
 
 proc bestRule(
-    rule: CompiledRule, line: string, position, anchorPos: int, isFirstLine: bool
+    rule: CompiledRule,
+    line: string,
+    position, anchorPos: int,
+    isFirstLine: bool,
+    searchCache: var RuleSearchCache,
+    anchored = false,
+    searchOrigin = -1,
 ): Candidate =
   var seen = initHashSet[pointer]()
-  findInRule(rule, line, position, anchorPos, isFirstLine, seen, result)
+  findInRule(
+    rule, line, position, anchorPos, isFirstLine, seen, searchCache, result, anchored,
+    searchOrigin,
+  )
 
 proc bestChildRule(
     rule, embeddedRule: CompiledRule,
     line: string,
     position, anchorPos: int,
     isFirstLine: bool,
+    searchCache: var RuleSearchCache,
+    anchored = false,
+    searchOrigin = -1,
 ): Candidate =
   var seen = initHashSet[pointer]()
   for child in rule.patterns:
     var candidate: Candidate
-    findInRule(child, line, position, anchorPos, isFirstLine, seen, candidate)
+    findInRule(
+      child, line, position, anchorPos, isFirstLine, seen, searchCache, candidate,
+      anchored, searchOrigin,
+    )
     if candidate.found and
         (not result.found or candidate.matched.matchSpan.a < result.matched.matchSpan.a):
       result = candidate
+    if not rule.graph.hasKeepAnchor and result.found and
+        result.matched.matchSpan.a == position:
+      return
   if not embeddedRule.isNil:
-    let candidate = bestRule(embeddedRule, line, position, anchorPos, isFirstLine)
+    let candidate = bestRule(
+      embeddedRule, line, position, anchorPos, isFirstLine, searchCache, anchored,
+      searchOrigin,
+    )
     if candidate.found and
         (not result.found or candidate.matched.matchSpan.a < result.matched.matchSpan.a):
       result = candidate
+
+proc nextRule(
+    rule, embeddedRule: CompiledRule,
+    isRoot: bool,
+    line: string,
+    position, anchorPos: int,
+    isFirstLine: bool,
+    searchCache: var RuleSearchCache,
+): Candidate =
+  # Probe a short ASCII prefix before searching the entire suffix for every
+  # rule. The first matching position wins, with rule order breaking ties.
+  # Fall back to normal searches on non-ASCII input, a long gap, or \K (which
+  # can move the reported match start independently of its consumed start).
+  if not rule.graph.hasKeepAnchor:
+    var cursor = position
+    while cursor < min(line.len, position + 8):
+      result =
+        if isRoot:
+          bestRule(
+            rule, line, cursor, anchorPos, isFirstLine, searchCache, true, position
+          )
+        else:
+          bestChildRule(
+            rule, embeddedRule, line, cursor, anchorPos, isFirstLine, searchCache, true,
+            position,
+          )
+      if result.found:
+        return
+      if line[cursor].ord >= 128:
+        break
+      inc cursor
+  result =
+    if isRoot:
+      bestRule(rule, line, position, anchorPos, isFirstLine, searchCache)
+    else:
+      bestChildRule(
+        rule, embeddedRule, line, position, anchorPos, isFirstLine, searchCache
+      )
 
 proc bestEnd(
     stack: StateStack, line: string, position: int, isFirstLine: bool
@@ -1254,7 +1409,7 @@ proc applyCaptures(
   var localStack: seq[LocalCapture]
   for (index, capture) in entries:
     let span = matched.captureSpan(index)
-    if span.a < whole.a or span.b > whole.b or span.a == span.b:
+    if span.a < whole.a or span.a > whole.b or span.a == span.b:
       continue
     while localStack.len > 0 and localStack[^1].endPos <= span.a:
       addToken(
@@ -1269,14 +1424,16 @@ proc applyCaptures(
         baseScopes
     addToken(tokens, cursor, span.a, parentScopes, visibleLength)
     cursor = span.a
-    var nameScopes = copyScopes(parentScopes)
+    # Retokenized captures start from the rule's scopes, independently of
+    # overlapping capture names (for example SVG's tag vs attribute scopes).
+    var nameScopes = copyScopes(if capture.rule.isNil: parentScopes else: baseScopes)
     let captureName = dynamicName(capture.name, line, matched)
     if captureName.len > 0:
-      nameScopes.add(captureName)
+      nameScopes.addScopes(captureName)
     var contentScopes = copyScopes(nameScopes)
     let contentName = dynamicName(capture.contentName, line, matched)
     if contentName.len > 0:
-      contentScopes.add(contentName)
+      contentScopes.addScopes(contentName)
     if not capture.rule.isNil and span.b > span.a:
       discard tokenizeInto(
         grammar,
@@ -1324,8 +1481,12 @@ proc checkWhiles(
         else:
           regexFor(source, grammar.scopeName & " while")
       let matched = findRegex(source, regex, line, position, anchorPos, isFirstLine)
-      if not matched.found:
-        return frame.parent
+      if not matched.found or matched.matchSpan.a > visibleLength:
+        return
+          if frame.parent.isNil:
+            nil
+          else:
+            withAnchor(frame.parent, anchorPos)
       let span = matched.matchSpan
       addToken(tokens, position, span.a, frame.scopes, visibleLength)
       applyCaptures(
@@ -1335,6 +1496,14 @@ proc checkWhiles(
       position = span.b
       anchorPos = span.b
   withAnchor(stack, anchorPos)
+
+proc hasRuleAtPosition(stack: StateStack, rule: CompiledRule, position: int): bool =
+  ## Distinct zero-width regions can nest; only repeating a rule is a cycle.
+  var frame = stack
+  while not frame.isNil and frame.enterPos == position:
+    if frame.rule == rule:
+      return true
+    frame = frame.parent
 
 proc tokenizeInto(
     grammar: Grammar,
@@ -1359,21 +1528,26 @@ proc tokenizeInto(
         @[grammar.scopeName]
       else:
         stack.scopes
-  var zeroWidthAt = -1
+  var searchCache: RuleSearchCache
   while position <= finish:
     let anchorPos = if stack.isNil: -1 else: stack.anchorPos
     let active = if stack.isNil: grammar.root else: stack.rule
-    var candidate =
-      if stack.isNil:
-        bestRule(active, line, position, anchorPos, start == 0)
-      else:
-        bestChildRule(active, stack.embeddedRule, line, position, anchorPos, start == 0)
-    if not stack.isNil:
-      candidate = candidate.preferEnd(stack.bestEnd(line, position, start == 0))
+    var candidate = nextRule(
+      active,
+      if stack.isNil: nil else: stack.embeddedRule,
+      stack.isNil,
+      line,
+      position,
+      anchorPos,
+      start == 0,
+      searchCache,
+    )
+    candidate = candidate.preferEnd(stack.bestEnd(line, position, start == 0))
     var injectionWon = false
     for injection in grammar.injections:
       if injection.selector.matches(scopeStack):
-        let injected = bestRule(injection.rule, line, position, anchorPos, start == 0)
+        let injected =
+          bestRule(injection.rule, line, position, anchorPos, start == 0, searchCache)
         if injected.found and (
           not candidate.found or
           injected.matched.matchSpan.a < candidate.matched.matchSpan.a or (
@@ -1414,7 +1588,7 @@ proc tokenizeInto(
         var matchScopes = copyScopes(scopeStack)
         let ruleName = dynamicName(rule.name, line, candidate.matched)
         if ruleName.len > 0:
-          matchScopes.add(ruleName)
+          matchScopes.addScopes(ruleName)
         applyCaptures(
           grammar, line, tokens, matchScopes, rule.captures, candidate.matched,
           visibleLength,
@@ -1423,7 +1597,7 @@ proc tokenizeInto(
         var openedScopes = copyScopes(scopeStack)
         let ruleName = dynamicName(rule.name, line, candidate.matched)
         if ruleName.len > 0:
-          openedScopes.add(ruleName)
+          openedScopes.addScopes(ruleName)
         applyCaptures(
           grammar, line, tokens, openedScopes, rule.beginCaptures, candidate.matched,
           visibleLength,
@@ -1431,7 +1605,7 @@ proc tokenizeInto(
         let nameScopes = copyScopes(openedScopes)
         let contentName = dynamicName(rule.contentName, line, candidate.matched)
         if contentName.len > 0:
-          openedScopes.add(contentName)
+          openedScopes.addScopes(contentName)
         let frame = newState(
           rule,
           stack,
@@ -1455,14 +1629,21 @@ proc tokenizeInto(
         scopeStack = openedScopes
       of rkInclude:
         discard
-    if span.b == position:
-      if zeroWidthAt == position:
-        addToken(tokens, position, finish, scopeStack, visibleLength)
-        break
-      zeroWidthAt = position
-    else:
+    if span.b <= position and candidate.kind == ckRule and (
+      candidate.rule.kind == rkMatch or
+      hasRuleAtPosition(stack.parent, candidate.rule, position)
+    ):
+      if not stack.isNil:
+        stack = stack.parent
+      scopeStack =
+        if stack.isNil:
+          @[grammar.scopeName]
+        else:
+          stack.scopes
+      addToken(tokens, position, finish, scopeStack, visibleLength)
+      break
+    if span.b > position:
       position = span.b
-      zeroWidthAt = -1
   stack
 
 proc tokenizeLineImpl(
@@ -1493,25 +1674,23 @@ proc tokenizeLineImpl(
   if stack.isNil:
     stack = initialState(grammar)
   scopes = stack.scopes
-  var zeroWidthAt = -1
+  var searchCache: RuleSearchCache
   while position <= lineLength:
     if timeLimitMs > 0 and (getMonoTime() - started).inMilliseconds > timeLimitMs:
       addToken(tokens, position, lineLength, scopes, lineLength)
       return plainResult(grammar, tokens, stack, true)
     let anchorPos = stack.anchorPos
-    var candidate =
-      if stack.isRoot:
-        bestRule(stack.rule, scannedLine, position, anchorPos, isFirstLine)
-      else:
-        bestChildRule(
-          stack.rule, stack.embeddedRule, scannedLine, position, anchorPos, isFirstLine
-        )
+    var candidate = nextRule(
+      stack.rule, stack.embeddedRule, stack.isRoot, scannedLine, position, anchorPos,
+      isFirstLine, searchCache,
+    )
     candidate = candidate.preferEnd(stack.bestEnd(scannedLine, position, isFirstLine))
     var injectionWon = false
     for injection in grammar.injections:
       if injection.selector.matches(scopes):
-        let injected =
-          bestRule(injection.rule, scannedLine, position, anchorPos, isFirstLine)
+        let injected = bestRule(
+          injection.rule, scannedLine, position, anchorPos, isFirstLine, searchCache
+        )
         if injected.found and (
           not candidate.found or
           injected.matched.matchSpan.a < candidate.matched.matchSpan.a or (
@@ -1551,7 +1730,7 @@ proc tokenizeLineImpl(
           var matchScopes = copyScopes(scopes)
           let ruleName = dynamicName(rule.name, scannedLine, candidate.matched)
           if ruleName.len > 0:
-            matchScopes.add(ruleName)
+            matchScopes.addScopes(ruleName)
           applyCaptures(
             grammar, scannedLine, tokens, matchScopes, rule.captures, candidate.matched,
             lineLength,
@@ -1560,7 +1739,7 @@ proc tokenizeLineImpl(
           var opened = copyScopes(scopes)
           let ruleName = dynamicName(rule.name, scannedLine, candidate.matched)
           if ruleName.len > 0:
-            opened.add(ruleName)
+            opened.addScopes(ruleName)
           applyCaptures(
             grammar, scannedLine, tokens, opened, rule.beginCaptures, candidate.matched,
             lineLength,
@@ -1569,7 +1748,7 @@ proc tokenizeLineImpl(
           let contentName =
             dynamicName(rule.contentName, scannedLine, candidate.matched)
           if contentName.len > 0:
-            opened.add(contentName)
+            opened.addScopes(contentName)
           let frame = newState(
             rule,
             stack,
@@ -1597,11 +1776,13 @@ proc tokenizeLineImpl(
           scopes = opened
         of rkInclude:
           discard
-        if span.b == position and zeroWidthAt == position:
+        if span.b <= position and
+            (rule.kind == rkMatch or hasRuleAtPosition(stack.parent, rule, position)):
+          if not stack.parent.isNil:
+            stack = stack.parent
+          scopes = stack.scopes
           addToken(tokens, position, lineLength, scopes, lineLength)
           position = lineLength + 1
-        else:
-          zeroWidthAt = if span.b == position: position else: -1
       if span.b > position:
         position = span.b
   plainResult(grammar, tokens, nextLineState(stack))

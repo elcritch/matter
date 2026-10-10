@@ -300,3 +300,36 @@ Compiled rules share an owned graph with non-owning recursive edges, so dropping
 a grammar releases its rules under ARC as well as ORC. Saved rule stacks and
 stack diffs retain the graph until they are released; callers can keep them
 after releasing the original grammar.
+
+## CSS, HTML, and Markdown compatibility
+
+The catalog exports `cssGrammar` and `vscodeCssPackage`. Loading HTML or Markdown
+with `loadGrammarPackage` automatically registers the bundled CSS and JavaScript
+grammars for embedded highlighting. Other optional languages are reported through
+`unresolvedIncludes`; register additional grammars before loading the host.
+
+`Token.scopes` exposes complete scope paths, including Markdown headings, emphasis,
+strikethrough, links, images, lists, quotes, tables, punctuation, and fenced-code
+language names. See the [Markdown scope guide](tests/fixtures/markdown/README.md)
+for selectors and examples. Binary tokens export bold, italic, underline, and
+strikethrough through `getFontStyle` and the `fontStyle*` constants.
+
+The checked-in [CSS fixtures](tests/fixtures/css/README.md) and
+[Markdown fixtures](tests/fixtures/markdown/README.md) include unchanged Merenda
+examples. `tools/bench_css.nim` and `tools/bench_markdown.nim` report compilation,
+document throughput, interrupted lines, token checksums, and the slowest lines.
+Recorded measurements and profiling findings are available for
+[CSS](tests/fixtures/css/BENCHMARK.md) and
+[Markdown](tests/fixtures/markdown/BENCHMARK.md).
+
+CSS, HTML, and Markdown tests compare every visible UTF-8 token range and scope
+path against pinned VS Code TextMate/Oniguruma reference snapshots. HTML coverage
+includes embedded languages, SVG, MathML, entities, and attributes. Markdown also
+checks scope boundaries after front matter, lists, and fences. Regex adaptation
+preserves mixed ordinary/named capture numbering. Numeric references to duplicate
+capture names are rejected with `MatterError`, since Reni cannot address those
+groups individually in named mode.
+
+Check `stoppedEarly` when using a time limit. The fixtures now complete with the
+existing regex step limit, but an interrupted result still has partial tokens
+and cannot supply a reusable next-line state.

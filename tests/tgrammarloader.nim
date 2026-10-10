@@ -121,7 +121,7 @@ suite "grammar package loader":
     check "documentation.injection.ts" in loaded.loadedScopeNames
     discard registry.loadGrammar("source.ts")
 
-  test "bounds one expensive regex in time-limited packaged YAML":
+  test "completes ordinary packaged YAML with a regex budget":
     let root = currentSourcePath.parentDir.parentDir
     let registry = newRegistry()
     discard registry.loadGrammarPackage(zipResourceSource(root), "source.yaml")
@@ -141,8 +141,14 @@ suite "grammar package loader":
       state,
       timeLimitMs = 100,
     )
-    check limited.stoppedEarly
-    check limited.ruleStack == state
+    check not limited.stoppedEarly
+    let complete = grammar.tokenizeLine(
+      "    name: tests (${{ matrix.os }}, ${{ matrix.nimversion }}, " &
+        "${{ matrix.display }})",
+      state,
+    )
+    check limited.tokens == complete.tokens
+    check limited.completedRuleStack == complete.completedRuleStack
 
   test "packaged YAML block scalars end at a dedented comment or key":
     let root = currentSourcePath.parentDir.parentDir

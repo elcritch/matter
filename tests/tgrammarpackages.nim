@@ -12,8 +12,8 @@ const moeModes = [
 
 suite "grammar package catalog":
   test "exposes pinned source and archive metadata":
-    check knownPackages.len == 31
-    check knownGrammars.len == 56
+    check knownPackages.len == 32
+    check knownGrammars.len == 57
     check nimVscodePackage.extensionId() == "nimsaem.nimvscode"
     check vscodeCppPackage.version == "1.95.3"
     check tomlPackage.licenseId == "MIT"

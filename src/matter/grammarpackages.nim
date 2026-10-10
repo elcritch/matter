@@ -59,6 +59,23 @@ const
     dataArchivePath: "data/grammars/vscode-cpp-1.95.3.zip",
     archiveSha256: "7b024dbe5a320cd7e485e8625391eacc4785d0e5956cd14fa41f8e949c921639",
   )
+  vscodeCssPackage* = SourcePackage(
+    namespace: "vscode",
+    name: "css",
+    version: "1.95.3",
+    targetPlatform: "",
+    sourceKind: "vsix",
+    sourceArchiveSha256:
+      "843c1114e6b0b5b95173a28874a2614617dc7cc7d7cd95899f971fb625d46a60",
+    sourceVsixSha256: "843c1114e6b0b5b95173a28874a2614617dc7cc7d7cd95899f971fb625d46a60",
+    licenseId: "MIT",
+    repositoryUrl: "https://github.com/microsoft/vscode/tree/1.95.3/extensions/css",
+    licenseUrl: "https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt",
+    downloadUrl:
+      "https://open-vsx.org/api/vscode/css/1.95.3/file/vscode.css-1.95.3.vsix",
+    dataArchivePath: "data/grammars/vscode-css-1.95.3.zip",
+    archiveSha256: "25cc0970bddf246b9abb284a010a3736ac81548c849355205185eca6fb669abb",
+  )
   vscodeCsharpPackage* = SourcePackage(
     namespace: "vscode",
     name: "csharp",
@@ -573,14 +590,14 @@ const
   )
 
   knownPackages* = [
-    vscodeCppPackage, vscodeCsharpPackage, vscodeDiffPackage, vscodeDockerPackage,
-    vscodeGitBasePackage, vscodeGoPackage, vscodeHtmlPackage, vscodeJavaPackage,
-    vscodeJavascriptPackage, vscodeLatexPackage, vscodeLogPackage, vscodeLuaPackage,
-    vscodeMarkdownPackage, vscodeRustPackage, vscodeShellscriptPackage,
-    vscodeTypescriptPackage, vscodeXmlPackage, vscodeYamlPackage, vscodeJsonPackage,
-    vscodePythonPackage, nimVscodePackage, fishPackage, haskellPackage, hyprlangPackage,
-    tomlPackage, lispPackage, astroPackage, tclPackage, terraformSyntaxPackage,
-    terraformPlanPackage, nifPackage,
+    vscodeCppPackage, vscodeCssPackage, vscodeCsharpPackage, vscodeDiffPackage,
+    vscodeDockerPackage, vscodeGitBasePackage, vscodeGoPackage, vscodeHtmlPackage,
+    vscodeJavaPackage, vscodeJavascriptPackage, vscodeLatexPackage, vscodeLogPackage,
+    vscodeLuaPackage, vscodeMarkdownPackage, vscodeRustPackage,
+    vscodeShellscriptPackage, vscodeTypescriptPackage, vscodeXmlPackage,
+    vscodeYamlPackage, vscodeJsonPackage, vscodePythonPackage, nimVscodePackage,
+    fishPackage, haskellPackage, hyprlangPackage, tomlPackage, lispPackage,
+    astroPackage, tclPackage, terraformSyntaxPackage, terraformPlanPackage, nifPackage,
   ]
 
   cGrammar* = GrammarContribution(
@@ -622,6 +639,16 @@ const
     packageKey: "vscode.cpp",
     dataArchivePath: "data/grammars/vscode-cpp-1.95.3.zip",
     isPrimary: false,
+  )
+  cssGrammar* = GrammarContribution(
+    displayName: "CSS",
+    languageId: "css",
+    scopeName: "source.css",
+    grammarPath: "./syntaxes/css.tmLanguage.json",
+    archiveMember: "grammar/syntaxes/css.tmLanguage.json",
+    packageKey: "vscode.css",
+    dataArchivePath: "data/grammars/vscode-css-1.95.3.zip",
+    isPrimary: true,
   )
   csharpGrammar* = GrammarContribution(
     displayName: "C#",
@@ -1145,9 +1172,9 @@ const
   )
 
   knownGrammars* = [
-    cGrammar, cppEmbeddedMacroGrammar, cppGrammar, cPlatformGrammar, csharpGrammar,
-    diffGrammar, dockerGrammar, gitCommitGrammar, gitRebaseGrammar, gitIgnoreGrammar,
-    goGrammar, htmlBasicGrammar, htmlGrammar, javaGrammar, jsxGrammar,
+    cGrammar, cppEmbeddedMacroGrammar, cppGrammar, cPlatformGrammar, cssGrammar,
+    csharpGrammar, diffGrammar, dockerGrammar, gitCommitGrammar, gitRebaseGrammar,
+    gitIgnoreGrammar, goGrammar, htmlBasicGrammar, htmlGrammar, javaGrammar, jsxGrammar,
     javascriptGrammar, javascriptRegexpGrammar, texGrammar, latexGrammar, bibtexGrammar,
     markdownLatexGrammar, cppEmbeddedLatexGrammar, logGrammar, luaGrammar,
     markdownGrammar, rustGrammar, shellGrammar, typescriptGrammar, tsxGrammar,

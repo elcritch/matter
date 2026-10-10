@@ -10,6 +10,13 @@ Each ZIP includes its source package license, manifest, and provenance.
 - Repository: https://github.com/microsoft/vscode/tree/1.95.3/extensions/cpp
 - SHA-256: `7b024dbe5a320cd7e485e8625391eacc4785d0e5956cd14fa41f8e949c921639`
 
+## vscode.css 1.95.3
+
+- License: MIT (https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt)
+- Source: https://open-vsx.org/api/vscode/css/1.95.3/file/vscode.css-1.95.3.vsix
+- Repository: https://github.com/microsoft/vscode/tree/1.95.3/extensions/css
+- SHA-256: `25cc0970bddf246b9abb284a010a3736ac81548c849355205185eca6fb669abb`
+
 ## vscode.csharp 1.95.3
 
 - License: MIT (https://github.com/microsoft/vscode/blob/1.95.3/LICENSE.txt)
