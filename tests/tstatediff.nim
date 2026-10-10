@@ -8,6 +8,32 @@ proc grammar(source: string): Grammar =
   registry.loadGrammar("source.state")
 
 suite "state stack diffs":
+  test "saved stacks and diffs retain rules after their grammar is released":
+    const source =
+      """
+      { "scopeName": "source.state", "patterns": [{
+        "begin": "\\[", "end": "\\]", "name": "meta.square",
+        "patterns": [{ "include": "$self" }]
+      }] }
+    """
+    proc savedStack(): StateStack =
+      grammar(source).tokenizeLine("[").ruleStack
+
+    proc savedDiff(): StackDiff =
+      diffStateStacksRefEq(nil, savedStack())
+
+    let stack = savedStack()
+    var diff = savedDiff()
+    let restored = applyStateStackDiff(nil, diff)
+    diff = StackDiff()
+    let replacement = grammar(source)
+    for state in [stack, restored]:
+      let nested = replacement.tokenizeLine("[", state)
+      check nested.ruleStack.depth == 3
+      let closed = replacement.tokenizeLine("]]", nested.ruleStack)
+      check closed.ruleStack.depth == 1
+      check closed.tokens[0].scopes == @["source.state", "meta.square", "meta.square"]
+
   test "no op and nil diffs preserve physical stacks":
     let tested = grammar(
       """
