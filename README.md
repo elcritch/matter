@@ -303,7 +303,8 @@ after releasing the original grammar.
 
 ## CSS, HTML, and Markdown compatibility
 
-The catalog exports `cssGrammar` and `vscodeCssPackage`. Loading HTML or Markdown
+The catalog exports `cssGrammar`, `htmlGrammar`, `htmlBasicGrammar`, and their
+`vscodeCssPackage` and `vscodeHtmlPackage` entries. Loading HTML or Markdown
 with `loadGrammarPackage` automatically registers the bundled CSS and JavaScript
 grammars for embedded highlighting. Other optional languages are reported through
 `unresolvedIncludes`; register additional grammars before loading the host.
@@ -311,24 +312,34 @@ grammars for embedded highlighting. Other optional languages are reported throug
 `Token.scopes` exposes complete scope paths, including Markdown headings, emphasis,
 strikethrough, links, images, lists, quotes, tables, punctuation, and fenced-code
 language names. See the [Markdown scope guide](tests/fixtures/markdown/README.md)
-for selectors and examples. Binary tokens export bold, italic, underline, and
+for selectors and examples. The [HTML scope guide](tests/fixtures/html/README.md)
+covers tags, attributes, entities, punctuation, embedded languages, and known
+upstream grammar limitations. Binary tokens export bold, italic, underline, and
 strikethrough through `getFontStyle` and the `fontStyle*` constants.
 
-The checked-in [CSS fixtures](tests/fixtures/css/README.md) and
+The checked-in [CSS fixtures](tests/fixtures/css/README.md),
+[HTML fixtures](tests/fixtures/html/README.md), and
 [Markdown fixtures](tests/fixtures/markdown/README.md) include unchanged Merenda
-examples. `tools/bench_css.nim` and `tools/bench_markdown.nim` report compilation,
+examples. `tools/bench_css.nim`, `tools/bench_html.nim`, and
+`tools/bench_markdown.nim` report compilation,
 document throughput, interrupted lines, token checksums, and the slowest lines.
 Recorded measurements and profiling findings are available for
-[CSS](tests/fixtures/css/BENCHMARK.md) and
+[CSS](tests/fixtures/css/BENCHMARK.md),
+[HTML](tests/fixtures/html/BENCHMARK.md), and
 [Markdown](tests/fixtures/markdown/BENCHMARK.md).
+The [engine comparison](tools/BENCHMARK.md) measures main, this branch, and
+VS Code TextMate on identical grammars and inputs, with output correctness checks.
 
 CSS, HTML, and Markdown tests compare every visible UTF-8 token range and scope
 path against pinned VS Code TextMate/Oniguruma reference snapshots. HTML coverage
 includes embedded languages, SVG, MathML, entities, and attributes. Markdown also
-checks scope boundaries after front matter, lists, and fences. Regex adaptation
-preserves mixed ordinary/named capture numbering. Numeric references to duplicate
-capture names are rejected with `MatterError`, since Reni cannot address those
-groups individually in named mode.
+checks scope boundaries after front matter, lists, and fences. Reni's native
+capture-group option preserves mixed ordinary/named capture numbering, including
+numeric references to duplicate names. Per-search anchor options avoid compiling
+separate regex variants. Matter currently depends on the named fork branch
+`elcritch/reni#feat/textmate-compat`; the native additions are proposed in
+[upstream Reni PR #84](https://github.com/fox0430/reni/pull/84). The remaining
+source adaptation handles TextMate's end-of-input and property-escape spellings.
 
 Check `stoppedEarly` when using a time limit. The fixtures now complete with the
 existing regex step limit, but an interrupted result still has partial tokens

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://example.com/html.dtd">
+<HTML lang=en>
+<head>
+  <meta charset="utf-8" />
+  <base href="https://example.com/">
+  <link rel="stylesheet" href="theme.css">
+  <title>Entities &amp; &copy; &#169; &#x1F600; &unknown; & broken</title>
+  <!-- multi-line comment with <tags> and &amp;
+       and a second line -->
+  <style type="text/css" media="screen">
+    :root { --accent: #aabbcc; }
+    .card[data-state="open"]:hover { color: var(--accent); margin: 1e+01px; }
+    @media (min-width: 40em) { .card { display: grid; } }
+    /* multi-line CSS comment
+       closes here */
+  </style><meta name="after-style" content="clean">
+  <script type="module">
+    const message = `hello ${name}`;
+    const pattern = /<tag>[a-z]+/gi;
+    // <div> stays JavaScript
+    /* multi-line JavaScript comment
+       closes here */
+    function greet(name) { return message + name; }
+  </script><meta name="after-script" content="clean">
+  <script type="application/javascript">const value = 42;</script>
+  <script type="application/json">{"label": "<b>plain data</b>"}</script>
+  <script type="text/plain"><b>not JavaScript</b></script>
+  <script type="text/template"><section data-template="yes">Template &amp; markup</section></script>
+  <script><!--
+    const legacy = true;
+  //--></script>
+</head>
+<body id="main" class='card' hidden data-state="ready" aria-label="Résumé 😀">
+  <main><section><article><header>Header</header><footer>Footer</footer></article></section></main>
+  <h1>Heading</h1><p>A <strong>strong</strong> <em>emphasis</em> <code>code</code> paragraph.</p>
+  <a href="https://example.com/?a=1&amp;b=2" target=_blank rel="noopener">Link</a>
+  <img src='image.png' alt="café &quot;photo&quot;" width=20 height=10 />
+  <br><hr><wbr><input type=checkbox checked disabled><embed src="media.bin">
+  <audio controls><source src="audio.ogg" type="audio/ogg"><track kind="captions"></audio>
+  <video poster="poster.png"></video><canvas width="10" height="10"></canvas>
+  <form action="/submit"><label for="name">Name</label><input id="name" required></form>
+  <button onclick="return greet('Ada');" style="color: red; margin: 2px;">Action</button>
+  <button onclick='const x = 1; alert(x)' style='padding: 3px'>Single quotes</button>
+  <button onclick=alert(1) style=color:red>Unquoted</button>
+  <button onclick="x = 'broken" id="after">After malformed JS string</button>
+  <button onclick="/unterminated" id="after">After malformed JS regex</button>
+  <button onclick="`unterminated" id="after">After malformed JS template</button>
+  <button onclick="/* unterminated" id="after">After malformed JS comment</button>
+  <div title="a multiline
+attribute with &amp; and 😀
+closing here" data-extra='x'>After attribute</div>
+  <my-widget data-value="42" custom-attr=unquoted disabled>Custom element</my-widget>
+  <nk-stack-view data-axis="vertical"><nk-label>NimKit</nk-label></nk-stack-view>
+  <widget extra="yes">Derivative fallback</widget>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+    <title>Vector title</title><desc>Description</desc>
+    <g transform="translate(1, 1)"><path d="M0 0 L20 20" fill="red"/></g>
+    <circle cx="10" cy="10" r="5"/><rect x="0" y="0" width="10" height="10"/>
+    <text x="1" y="2">Vector &amp; text</text>
+    <foreignObject x="0" y="0" width="10" height="10"><div>HTML content</div></foreignObject>
+  </svg>
+  <math xmlns="http://www.w3.org/1998/Math/MathML">
+    <mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow>
+    <mfrac><mn>1</mn><mn>2</mn></mfrac><msqrt><mi>y</mi></msqrt>
+    <semantics><annotation encoding="text/plain">math annotation</annotation></semantics>
+  </math>
+  <![CDATA[raw <content> & text
+  another raw line ]]>
+  <textarea rows="2">Text &amp; <b>literal-looking content</b></textarea>
+  <pre>Code &lt;tag&gt; αβ 😀</pre>
+  <center align="middle"><font color="red">Deprecated markup</font></center>
+  <div =wrong good="ok" title=bad"quote stray='ok'>Malformed attributes</div>
+  text < 3 and > 2 &missing-semicolon &#xZZ; &#bad;
+  </orphan>
+  <SCRIPT TYPE="text/javascript">let upper = 7;</SCRIPT>
+  <STYLE>.upper { color: blue; }</STYLE>
+  <div data-final="ready">Clean final markup 😀</div>
+</body>
+</HTML>

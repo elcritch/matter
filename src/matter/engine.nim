@@ -22,8 +22,8 @@ type
     rule: CompiledRule
 
   CompiledRegex = ref object
-    hasA, hasG: bool
-    variants: array[4, Regex]
+    hasG: bool
+    regex: Regex
 
   CompiledRule = ptr CompiledRuleObj
 
@@ -38,6 +38,7 @@ type
     name, contentName, matterEmbeddedLanguage: string
     matchSource, beginSource, endSource, whileSource: string
     searchRegex: CompiledRegex
+    staticEndRegex: CompiledRegex
     captures, beginCaptures, endCaptures, whileCaptures:
       OrderedTable[int, CompiledCapture]
     patterns: seq[CompiledRule]
@@ -108,7 +109,7 @@ type
     rule: CompiledRule
     nameScopes: seq[string]
     scopes: seq[string]
-    endRegex: Regex
+    endRegex: CompiledRegex
     hasEndRegex: bool
     enterPos: int
     anchorPos: int
@@ -122,7 +123,7 @@ type
     ruleGraph: CompiledRuleGraph
     rule: CompiledRule
     nameScopes, scopes: seq[string]
-    endRegex: Regex
+    endRegex: CompiledRegex
     hasEndRegex: bool
     enterPos, anchorPos: int
     isRoot, isFirstLine, beginRuleCapturedEol: bool
@@ -190,7 +191,11 @@ var
   activeRegexStepLimit {.threadvar.}: int
 
 proc searchWithContext(
-    subject: string, regex: Regex, start: int, anchored = false
+    subject: string,
+    regex: Regex,
+    start: int,
+    anchored = false,
+    options: MatchOptions = {},
 ): Match =
   ## Reuse reni's per-thread scratch buffers across all tokenizer probes.
   if matchContext.isNil:
@@ -206,6 +211,7 @@ proc searchWithContext(
       start,
       stepLimit =
         if activeRegexStepLimit > 0: activeRegexStepLimit else: DefaultStepLimit,
+      options = options,
     )
     return
   except RegexLimitError as error:
@@ -288,12 +294,10 @@ proc addGrammar*(
   for scope in hostScopes:
     registry.injectionScopes.mgetOrPut(scope, @[]).add(grammar.scopeName)
 
-proc regexFor(
-    source, context: string, allowA = true, allowG = true, anchorsOnly = false
-): Regex =
+proc regexFor(source, context: string): Regex =
   var failure: string
   try:
-    return re(textMateRegexSource(source, allowA, allowG, anchorsOnly))
+    return re(textMateRegexSource(source), {rfCaptureGroup})
   except RegexError as error:
     failure = "invalid regex in " & context & ": " & error.msg
   # Leave the handler before raising the wrapper so ARC releases the caught error.
@@ -310,15 +314,7 @@ proc compileSearchRegex(
     return cache.regexes[source]
   let regex = regexFor(source, context)
   let anchors = regexAnchors(source)
-  result = CompiledRegex(hasA: 'A' in anchors, hasG: 'G' in anchors)
-  result.variants[0] = regex
-  for mask in 1 .. 3:
-    if ((mask and 1) != 0 and not result.hasA) or (
-      (mask and 2) != 0 and not result.hasG
-    ):
-      continue
-    result.variants[mask] =
-      regexFor(source, context, (mask and 1) == 0, (mask and 2) == 0)
+  result = CompiledRegex(hasG: 'G' in anchors, regex: regex)
   cache.regexes[source] = result
 
 proc substituteCaptures(source, line: string, matched: Match): string =
@@ -341,6 +337,12 @@ proc substituteCaptures(source, line: string, matched: Match): string =
     else:
       result.add(source[i])
       inc i
+
+proc hasCaptureReferences(source: string): bool =
+  # Use the same backreference spelling recognized by substituteCaptures.
+  for i in 0 ..< source.len - 1:
+    if source[i] == '\\' and source[i + 1].isDigit:
+      return true
 
 proc dynamicName(source, line: string, matched: Match): string =
   if source.len == 0:
@@ -429,7 +431,7 @@ proc `==`*(a, b: StateStack): bool =
     return a.isNil and b.isNil
   a.rule == b.rule and a.nameScopes == b.nameScopes and a.scopes == b.scopes and
     a.hasEndRegex == b.hasEndRegex and
-    (not a.hasEndRegex or a.endRegex.pattern == b.endRegex.pattern) and
+    (not a.hasEndRegex or a.endRegex.regex.pattern == b.endRegex.regex.pattern) and
     a.enterPos == b.enterPos and a.anchorPos == b.anchorPos and a.isRoot == b.isRoot and
     a.isFirstLine == b.isFirstLine and a.beginRuleCapturedEol == b.beginRuleCapturedEol and
     a.embeddedRule == b.embeddedRule and a.parent == b.parent
@@ -588,7 +590,7 @@ proc compileRule(
       compileSearchRegex(raw.match, grammar.scopeName & " match", cache)
     result.cacheSearch = not result.searchRegex.hasG
     result.searchFromOrigin =
-      not result.cacheSearch or rfFindLongest in result.searchRegex.variants[0].flags
+      not result.cacheSearch or rfFindLongest in result.searchRegex.regex.flags
     cache.graph.hasKeepAnchor =
       cache.graph.hasKeepAnchor or raw.match.hasUnescapedAnchor('K')
     result.captures =
@@ -599,7 +601,7 @@ proc compileRule(
       compileSearchRegex(raw.begin, grammar.scopeName & " begin", cache)
     result.cacheSearch = not result.searchRegex.hasG
     result.searchFromOrigin =
-      not result.cacheSearch or rfFindLongest in result.searchRegex.variants[0].flags
+      not result.cacheSearch or rfFindLongest in result.searchRegex.regex.flags
     cache.graph.hasKeepAnchor =
       cache.graph.hasKeepAnchor or raw.begin.hasUnescapedAnchor('K')
     result.patterns =
@@ -615,6 +617,9 @@ proc compileRule(
     if raw.while.len > 0:
       result.kind = rkBeginWhile
       result.whileSource = raw.while
+      if not raw.while.hasCaptureReferences:
+        result.staticEndRegex =
+          compileSearchRegex(raw.while, grammar.scopeName & " while", cache)
       result.whileCaptures = compileCaptures(
         grammar,
         localRepository,
@@ -626,6 +631,9 @@ proc compileRule(
     else:
       result.kind = rkBeginEnd
       result.endSource = raw.end
+      if not raw.end.hasCaptureReferences:
+        result.staticEndRegex =
+          compileSearchRegex(raw.end, grammar.scopeName & " end", cache)
       result.applyEndPatternLast = raw.applyEndPatternLast
       result.endCaptures = compileCaptures(
         grammar,
@@ -1129,33 +1137,30 @@ proc tokenizeLine2*(
   result.stoppedEarly = plain.stoppedEarly
   result.fonts = plain.fonts
 
-proc resolvedRegex(source, line: string, matched: Match, context: string): Regex =
-  regexFor(substituteCaptures(source, line, matched), context)
+proc resolvedRegex(
+    source, line: string, matched: Match, context: string, staticRegex: CompiledRegex
+): CompiledRegex =
+  if not staticRegex.isNil:
+    return staticRegex
+  let resolved = substituteCaptures(source, line, matched)
+  CompiledRegex(
+    regex: regexFor(resolved, context), hasG: resolved.hasUnescapedAnchor('G')
+  )
 
 proc findRegex(
-    source: string,
-    regex: Regex,
+    compiled: CompiledRegex,
     line: string,
     position, anchorPos: int,
     isFirstLine: bool,
     anchored = false,
 ): Match =
-  let disableA = not isFirstLine and source.hasUnescapedAnchor('A')
-  let hasG = source.hasUnescapedAnchor('G')
-  let disableG = position != anchorPos and hasG
-  if not anchored and hasG and not disableG and rfFindLongest notin regex.flags:
-    # Reni's scan hints can skip a mid-line \G alternative next to ^. A
-    # successful attempt at the original cursor is always the first match.
-    result = searchWithContext(line, regex, position, true)
-    if result.found:
-      return
-  if not (disableA or disableG):
-    return searchWithContext(line, regex, position, anchored)
-  # The stored pattern already has capture and terminal-newline adaptations.
-  let resolved = regexFor(
-    regex.pattern, "anchored token", isFirstLine, not disableG, anchorsOnly = true
-  )
-  result = searchWithContext(line, resolved, position, anchored)
+  var options: MatchOptions
+  if not isFirstLine:
+    options.incl(moNotBeginString)
+  if position != anchorPos:
+    options.incl(moNotBeginPosition)
+  let regex {.cursor.} = compiled.regex
+  searchWithContext(line, regex, position, anchored, options)
 
 proc findRuleRegex(
     rule: CompiledRule,
@@ -1188,17 +1193,14 @@ proc findRuleRegex(
   if not reused:
     let atPosition = anchored and not rule.searchFromOrigin
     let compiled = rule.searchRegex
-    let mask =
-      (if compiled.hasA and not isFirstLine: 1 else: 0) or
-      (if compiled.hasG and origin != anchorPos: 2 else: 0)
-    # Borrow the immutable variant; assigning this value normally copies
-    # Reni's compiled node, capture, and search-hint sequences on every probe.
-    let regex {.cursor.} = compiled.variants[mask]
-    if not atPosition and compiled.hasG and (mask and 2) == 0 and
-        rfFindLongest notin regex.flags:
-      result = searchWithContext(line, regex, origin, true)
-    if not result.found:
-      result = searchWithContext(line, regex, origin, atPosition)
+    var options: MatchOptions
+    if not isFirstLine:
+      options.incl(moNotBeginString)
+    if origin != anchorPos:
+      options.incl(moNotBeginPosition)
+    # Borrow the immutable pattern instead of copying its compiled tables.
+    let regex {.cursor.} = compiled.regex
+    result = searchWithContext(line, regex, origin, atPosition, options)
     if not atPosition or result.found:
       searchCache[key] =
         CachedRuleMatch(position: origin, anchorPos: anchorPos, matched: result)
@@ -1350,10 +1352,8 @@ proc bestEnd(
     isActive = true
   while not frame.isNil:
     if frame.rule.kind == rkBeginEnd and (isActive or not frame.embeddedRule.isNil):
-      let ending = findRegex(
-        frame.endRegex.pattern, frame.endRegex, line, position, frame.anchorPos,
-        isFirstLine,
-      )
+      let ending =
+        findRegex(frame.endRegex, line, position, frame.anchorPos, isFirstLine)
       if ending.found and (
         not result.found or ending.matchSpan.a < result.matched.matchSpan.a or
         ending.matchSpan.a == result.matched.matchSpan.a and not frame.embeddedRule.isNil
@@ -1437,12 +1437,12 @@ proc applyCaptures(
     if not capture.rule.isNil and span.b > span.a:
       discard tokenizeInto(
         grammar,
-        line,
+        line[0 ..< span.b],
         span.a,
         span.b,
         newState(capture.rule, nil, nameScopes, contentScopes, span.a, -1),
         tokens,
-        visibleLength,
+        min(visibleLength, span.b),
       )
       cursor = span.b
     else:
@@ -1473,14 +1473,7 @@ proc checkWhiles(
   for i in countdown(chain.high, 0):
     let frame = chain[i]
     if frame.rule.kind == rkBeginWhile:
-      let source =
-        if frame.hasEndRegex: frame.endRegex.pattern else: frame.rule.whileSource
-      let regex =
-        if frame.hasEndRegex:
-          frame.endRegex
-        else:
-          regexFor(source, grammar.scopeName & " while")
-      let matched = findRegex(source, regex, line, position, anchorPos, isFirstLine)
+      let matched = findRegex(frame.endRegex, line, position, anchorPos, isFirstLine)
       if not matched.found or matched.matchSpan.a > visibleLength:
         return
           if frame.parent.isNil:
@@ -1618,12 +1611,20 @@ proc tokenizeInto(
         if rule.kind == rkBeginEnd:
           frame.hasEndRegex = true
           frame.endRegex = resolvedRegex(
-            rule.endSource, line, candidate.matched, grammar.scopeName & " end"
+            rule.endSource,
+            line,
+            candidate.matched,
+            grammar.scopeName & " end",
+            rule.staticEndRegex,
           )
-        elif rule.whileSource.contains("\\"):
+        elif rule.kind == rkBeginWhile:
           frame.hasEndRegex = true
           frame.endRegex = resolvedRegex(
-            rule.whileSource, line, candidate.matched, grammar.scopeName & " while"
+            rule.whileSource,
+            line,
+            candidate.matched,
+            grammar.scopeName & " while",
+            rule.staticEndRegex,
           )
         stack = frame
         scopeStack = openedScopes
@@ -1675,7 +1676,9 @@ proc tokenizeLineImpl(
     stack = initialState(grammar)
   scopes = stack.scopes
   var searchCache: RuleSearchCache
-  while position <= lineLength:
+  # The reference can open a zero-width child at EOF after a begin consumed
+  # the synthetic LF (notably JavaScript's Markdown fence continuation).
+  while position <= scannedLine.len:
     if timeLimitMs > 0 and (getMonoTime() - started).inMilliseconds > timeLimitMs:
       addToken(tokens, position, lineLength, scopes, lineLength)
       return plainResult(grammar, tokens, stack, true)
@@ -1702,7 +1705,7 @@ proc tokenizeLineImpl(
           injectionWon = true
     if not candidate.found:
       addToken(tokens, position, lineLength, scopes, lineLength)
-      position = lineLength + 1
+      position = scannedLine.len + 1
     else:
       let span = candidate.matched.matchSpan
       addToken(tokens, position, span.a, scopes, lineLength)
@@ -1722,7 +1725,7 @@ proc tokenizeLineImpl(
           stack = old
           scopes = old.scopes
           addToken(tokens, position, lineLength, scopes, lineLength)
-          position = lineLength + 1
+          position = scannedLine.len + 1
       else:
         let rule = candidate.rule
         case rule.kind
@@ -1762,15 +1765,20 @@ proc tokenizeLineImpl(
           if rule.kind == rkBeginEnd:
             frame.hasEndRegex = true
             frame.endRegex = resolvedRegex(
-              rule.endSource, scannedLine, candidate.matched, grammar.scopeName & " end"
+              rule.endSource,
+              scannedLine,
+              candidate.matched,
+              grammar.scopeName & " end",
+              rule.staticEndRegex,
             )
-          elif rule.whileSource.contains("\\"):
+          elif rule.kind == rkBeginWhile:
             frame.hasEndRegex = true
             frame.endRegex = resolvedRegex(
               rule.whileSource,
               scannedLine,
               candidate.matched,
               grammar.scopeName & " while",
+              rule.staticEndRegex,
             )
           stack = frame
           scopes = opened
@@ -1782,7 +1790,7 @@ proc tokenizeLineImpl(
             stack = stack.parent
           scopes = stack.scopes
           addToken(tokens, position, lineLength, scopes, lineLength)
-          position = lineLength + 1
+          position = scannedLine.len + 1
       if span.b > position:
         position = span.b
   plainResult(grammar, tokens, nextLineState(stack))

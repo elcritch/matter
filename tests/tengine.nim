@@ -537,6 +537,21 @@ suite "matter engine":
     expect MatterError:
       discard registry.loadGrammar("source.test")
 
+  test "opens a continuation at EOF after its parent consumed the synthetic LF":
+    let tested = grammar(
+      """{
+      "scopeName":"source.test", "patterns":[{
+        "begin":"x\\s*$", "end":"!", "name":"outer",
+        "patterns":[{"begin":"\\G", "while":"^", "contentName":"inner",
+          "patterns":[{"match":"\\w+", "name":"word"}]}]
+      }]
+    }"""
+    )
+    let opened = tested.tokenizeLine("x")
+    check opened.completedRuleStack.hasActiveScope("inner")
+    let continued = tested.tokenizeLine("hello", opened.completedRuleStack)
+    check continued.tokens.anyIt("inner" in it.scopes and "word" in it.scopes)
+
   test "scans a synthetic newline without emitting it":
     let tested = grammar(
       """

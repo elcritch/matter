@@ -60,10 +60,10 @@ their original search origin. This avoids the expensive distant selector probes
 that exceeded the timed regex budget.
 
 The Markdown profile also exposed copies of Reni's compiled regex objects when
-selecting an anchor variant. Matter now borrows that immutable variant, retaining
-its owner for the call. Compiler ARC expansion confirms that the per-probe regex
-copy/destruction is gone. Anchor variants are compiled once and identical source
-expressions share them within a compiled grammar graph.
+selecting an anchor variant. Borrowing that immutable variant removed the
+per-probe regex copy/destruction, confirmed by compiler ARC expansion. The later
+native Reni integration removes separate anchor variants entirely; identical
+source expressions still share an immutable compiled regex within the grammar.
 
 The optimization initially preserved byte-identical token snapshots for all
 four themes. Comparing against the actual VS Code reference then exposed three
@@ -90,5 +90,14 @@ The regression test uses a generous wall-clock deadline with the same regex step
 cap and checks the entire reference snapshot. Applications must still handle
 `stoppedEarly` for arbitrary input and grammars.
 
-Reni is pinned to `7703aa83d8bbd358872bbab388b2c62e6798b88a`, verified as upstream
-HEAD on 2026-10-11. No dependency changes or larger step budgets were needed.
+Those CSS measurements used Reni
+`7703aa83d8bbd358872bbab388b2c62e6798b88a`, verified as upstream HEAD on
+2026-10-11. No dependency changes or larger step budgets were needed for that
+stage. The subsequent HTML work uses the named fork branch
+`elcritch/reni#feat/textmate-compat` (measured at `97b95d2`), proposed in
+[upstream Reni PR #84](https://github.com/fox0430/reni/pull/84).
+
+Three release passes with native capture/anchor options and shared end/while
+patterns measured 398.9–416.9 ms for synthwave83 with `timeLimitMs = 100`.
+All 5,534 tokens and CRC32 `290396D3` are unchanged, with zero interrupted
+lines. CSS performance remains close to the preceding optimized result.

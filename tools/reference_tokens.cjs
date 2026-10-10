@@ -1,5 +1,5 @@
 // Generate visible UTF-8 token snapshots with the VS Code reference engine.
-// See tests/fixtures/{css,markdown}/README.md for installation and invocation.
+// See tests/fixtures/{css,html,markdown}/README.md for installation and invocation.
 const fs = require("fs");
 const path = require("path");
 const textmate = require("vscode-textmate");
@@ -27,11 +27,7 @@ function removeRuntimeDispatch(grammar) {
   return grammar;
 }
 
-async function main() {
-  const [grammarDir, scope, sourcePath, outputPath] = process.argv.slice(2);
-  if (!outputPath) {
-    throw new Error("Usage: reference_tokens.cjs grammarDir scope sourcePath outputPath");
-  }
+function readGrammars(grammarDir) {
   const grammars = new Map();
   for (const file of fs.readdirSync(grammarDir)) {
     if (/\.tmLanguage(?:\.json)?$/.test(file)) {
@@ -41,16 +37,37 @@ async function main() {
       grammars.set(raw.scopeName, removeRuntimeDispatch(raw));
     }
   }
+  return grammars;
+}
+
+async function createRegistry(grammars) {
   await oniguruma.loadWASM(
     fs.readFileSync(require.resolve("vscode-oniguruma/release/onig.wasm")).buffer
   );
-  const registry = new textmate.Registry({
+  return new textmate.Registry({
     onigLib: Promise.resolve({
       createOnigScanner: patterns => new oniguruma.OnigScanner(patterns),
       createOnigString: text => new oniguruma.OnigString(text)
     }),
     loadGrammar: async scopeName => grammars.get(scopeName) || null
   });
+}
+
+function visibleTokens(line, tokens) {
+  // Matter uses UTF-8 offsets and excludes the synthetic terminal newline.
+  return tokens.map(token => ({
+    startIndex: Buffer.byteLength(line.slice(0, Math.min(token.startIndex, line.length))),
+    endIndex: Buffer.byteLength(line.slice(0, Math.min(token.endIndex, line.length))),
+    scopes: token.scopes
+  })).filter(token => token.endIndex > token.startIndex);
+}
+
+async function main() {
+  const [grammarDir, scope, sourcePath, outputPath] = process.argv.slice(2);
+  if (!outputPath) {
+    throw new Error("Usage: reference_tokens.cjs grammarDir scope sourcePath outputPath");
+  }
+  const registry = await createRegistry(readGrammars(grammarDir));
   try {
     const grammar = await registry.loadGrammar(scope);
     if (!grammar) throw new Error("Missing grammar: " + scope);
@@ -59,12 +76,7 @@ async function main() {
     for (const line of fs.readFileSync(sourcePath, "utf8").split(/\r?\n/)) {
       const parsed = grammar.tokenizeLine(line, state);
       state = parsed.ruleStack;
-      // Matter uses UTF-8 offsets and excludes the synthetic terminal newline.
-      snapshots.push(parsed.tokens.map(token => ({
-        startIndex: Buffer.byteLength(line.slice(0, Math.min(token.startIndex, line.length))),
-        endIndex: Buffer.byteLength(line.slice(0, Math.min(token.endIndex, line.length))),
-        scopes: token.scopes
-      })).filter(token => token.endIndex > token.startIndex));
+      snapshots.push(visibleTokens(line, parsed.tokens));
     }
     fs.writeFileSync(outputPath, snapshots.map(line => JSON.stringify(line)).join("\n") + "\n");
   } finally {
@@ -72,7 +84,11 @@ async function main() {
   }
 }
 
-main().catch(error => {
-  console.error(error);
-  process.exitCode = 1;
-});
+module.exports = { readGrammars, createRegistry, visibleTokens };
+
+if (require.main === module) {
+  main().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
