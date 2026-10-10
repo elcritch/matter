@@ -123,7 +123,8 @@ catalog JSON is embedded with `staticRead` and parsed from that embedded data,
 so selecting a URL performs no runtime metadata file or network I/O. The
 release workflow runs the test suite and offline archive verification before it
 creates a `v*` GitHub Release and uploads every
-`data/grammars/*.zip` asset.
+`data/grammars/*.zip` asset. If the release already exists, the workflow uploads
+or replaces its grammar archives, so publishing can resume after a partial run.
 
 To refresh pinned source files after intentionally editing
 `tools/grammar_manifest.json`, use Python 3 and `nph` (network access required).
