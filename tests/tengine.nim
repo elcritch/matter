@@ -94,6 +94,204 @@ suite "matter engine":
     check result.tokens[0].stop == 1
     check result.tokens[0].scopes == @["source.test", "first"]
 
+  test "reuses future matches without keeping consumed captures":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [
+        { "match": "(x)(y)", "captures": {
+          "1": { "name": "first" }, "2": { "name": "second" }
+        } },
+        { "match": "\\d", "name": "number" }
+      ] }
+    """
+    )
+    let parsed = tested.tokenizeLine("12xy3xy")
+    check parsed.tokens.mapIt((it.startIndex, it.endIndex, it.scopes[^1])) ==
+      @[
+        (0, 1, "number"),
+        (1, 2, "number"),
+        (2, 3, "first"),
+        (3, 4, "second"),
+        (4, 5, "number"),
+        (5, 6, "first"),
+        (6, 7, "second"),
+      ]
+    let next = tested.tokenizeLine("xy", parsed.completedRuleStack)
+    check next.tokens.mapIt(it.scopes[^1]) == @["first", "second"]
+
+  test "rechecks G after entering a begin rule":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [
+        { "include": "#anchored" },
+        { "begin": "\\[", "end": "\\]", "patterns": [
+          { "include": "#anchored" }
+        ] }
+      ], "repository": {
+        "anchored": { "match": "\\Gx", "name": "anchored" }
+      } }
+    """
+    )
+    let parsed = tested.tokenizeLine("[x]")
+    check parsed.tokens.anyIt(it.startIndex == 1 and "anchored" in it.scopes)
+
+  test "nearby probes keep G at the original search position inside lookbehinds":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [{
+        "begin": "\\[", "end": "\\]", "patterns": [
+          { "match": "(?<=\\Gx)y", "name": "anchored" },
+          { "match": "z", "name": "later" }
+        ]
+      }] }
+    """
+    )
+    let parsed = tested.tokenizeLine("[xyz]")
+    check parsed.tokens.anyIt(it.startIndex == 2 and "anchored" in it.scopes)
+    check parsed.tokens.anyIt(it.startIndex == 3 and "later" in it.scopes)
+
+  test "zero width begins invalidate G results when only the anchor changes":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [
+        { "include": "#anchored" },
+        { "begin": "(?=x)", "end": "(?<=x)", "patterns": [
+          { "include": "#anchored" }
+        ] }
+      ], "repository": {
+        "anchored": { "match": "\\Gx", "name": "anchored" }
+      } }
+    """
+    )
+    let parsed = tested.tokenizeLine("x")
+    check parsed.tokens[0].scopes == @["source.test", "anchored"]
+
+  test "nearby probes preserve longest match searches":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [
+        { "match": "(?L)x+", "name": "longest" },
+        { "match": "y", "name": "earlier" }
+      ] }
+    """
+    )
+    let parsed = tested.tokenizeLine("xyxxx")
+    check parsed.tokens.mapIt((it.startIndex, it.endIndex, it.scopes[^1])) ==
+      @[(0, 1, "source.test"), (1, 2, "earlier"), (2, 5, "longest")]
+
+  test "nearby matches avoid scanning an expensive suffix unnecessarily":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [
+        { "match": "(a+)+b", "name": "unmatched" },
+        { "match": "x.+", "name": "nearby" }
+      ] }
+    """
+    )
+    let source = "  x" & "a".repeat(30)
+    let parsed = tested.tokenizeLine(source, timeLimitMs = 10_000)
+    check not parsed.stoppedEarly
+    check parsed.tokens[^1].scopes == @["source.test", "nearby"]
+    check parsed.tokens[^1].endIndex == source.len
+
+  test "nearby probes fall back across long gaps and UTF-8 text":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [
+        { "match": "x", "name": "letter" }
+      ] }
+    """
+    )
+    for source in [" ".repeat(40) & "x", "α😀x"]:
+      let parsed = tested.tokenizeLine(source)
+      check parsed.tokens[^1].startIndex == source.len - 1
+      check parsed.tokens[^1].scopes == @["source.test", "letter"]
+
+  test "invalidates cached matches when the cursor passes the consumed start":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [
+        { "match": "a", "name": "first" },
+        { "match": "a\\Kb", "name": "kept" }
+      ] }
+    """
+    )
+    let parsed = tested.tokenizeLine("ab")
+    check parsed.tokens.mapIt(it.scopes[^1]) == @["first", "source.test"]
+
+  test "keeps searching when K in a lookbehind can report an earlier start":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [
+        { "match": "a", "name": "first" },
+        { "match": "b", "name": "second" },
+        { "match": "(?<=\\Ka)b", "name": "kept" }
+      ] }
+    """
+    )
+    let parsed = tested.tokenizeLine("ab")
+    check parsed.tokens.anyIt("kept" in it.scopes)
+    check not parsed.tokens.anyIt("second" in it.scopes)
+
+  test "does not probe later rules once the first rule wins at the cursor":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [
+        { "match": "a", "name": "first" },
+        { "match": "(a+)+b", "name": "pathological" }
+      ] }
+    """
+    )
+    # Probing the second rule would exhaust Reni's matching step limit.
+    let parsed = tested.tokenizeLine("a".repeat(30))
+    check not parsed.stoppedEarly
+    check parsed.tokens.len == 30
+    check parsed.tokens.allIt(it.scopes == @["source.test", "first"])
+
+  test "splits multiple names in matches captures and begin end content scopes":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [
+        { "match": "(a)", "name": "match.one match.two",
+          "captures": { "1": { "name": "capture.one capture.two" } } },
+        { "begin": "<", "end": ">", "name": "region.one region.two",
+          "contentName": "content.one content.two",
+          "patterns": [{ "match": "(b)", "captures": {
+            "1": { "name": "capture.outer", "contentName": "retoken.one retoken.two",
+              "patterns": [{ "match": "b", "name": "nested.one nested.two" }] }
+          } }] }
+      ] }
+    """
+    )
+    let parsed = tested.tokenizeLine("a<b>")
+    check parsed.tokens[0].scopes ==
+      @["source.test", "match.one", "match.two", "capture.one", "capture.two"]
+    check parsed.tokens[1].scopes == @["source.test", "region.one", "region.two"]
+    check parsed.tokens[2].scopes ==
+      @[
+        "source.test", "region.one", "region.two", "content.one", "content.two",
+        "capture.outer", "retoken.one", "retoken.two", "nested.one", "nested.two",
+      ]
+    check parsed.tokens[3].scopes == @["source.test", "region.one", "region.two"]
+
+  test "retokenized captures do not inherit overlapping capture names":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [{
+        "match": "(a)b", "name": "match.scope", "captures": {
+          "0": { "name": "whole.capture" },
+          "1": { "name": "inner.capture", "patterns": [
+            { "match": "a", "name": "nested.scope" }
+          ] }
+        }
+      }] }
+    """
+    )
+    let parsed = tested.tokenizeLine("ab")
+    check parsed.tokens[0].scopes ==
+      @["source.test", "match.scope", "inner.capture", "nested.scope"]
+    check parsed.tokens[1].scopes == @["source.test", "match.scope", "whole.capture"]
+
   test "begin end captures dynamic names and preserves immutable state":
     let tested = grammar(
       """
@@ -232,6 +430,37 @@ suite "matter engine":
     check result.tokens.len <= 2
     check result.tokens[^1].stop == 1
 
+  test "allows nested distinct zero width begins before consuming text":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [{
+        "begin": "(?=x)", "end": "(?<=x)", "name": "outer",
+        "patterns": [{
+          "begin": "(?=x)", "end": "(?<=x)", "name": "inner",
+          "patterns": [{ "match": "x", "name": "word" }]
+        }]
+      }] }
+    """
+    )
+    let parsed = tested.tokenizeLine("x")
+    check parsed.tokens[0].scopes == @["source.test", "outer", "inner", "word"]
+    check parsed.completedRuleStack.depth == 1
+
+  test "stops recursive zero width begins without blocking distinct rules":
+    let tested = grammar(
+      """
+      { "scopeName": "source.test", "patterns": [{ "include": "#region" }],
+        "repository": { "region": {
+          "begin": "(?=x)", "end": "(?!)", "name": "region",
+          "patterns": [{ "include": "#region" }]
+        } }
+      }
+    """
+    )
+    let parsed = tested.tokenizeLine("x")
+    check parsed.tokens[0].scopes == @["source.test", "region"]
+    check parsed.completedRuleStack.depth == 2
+
   test "searches child patterns while a begin end rule is active":
     let tested = grammar(
       """
@@ -308,6 +537,21 @@ suite "matter engine":
     expect MatterError:
       discard registry.loadGrammar("source.test")
 
+  test "opens a continuation at EOF after its parent consumed the synthetic LF":
+    let tested = grammar(
+      """{
+      "scopeName":"source.test", "patterns":[{
+        "begin":"x\\s*$", "end":"!", "name":"outer",
+        "patterns":[{"begin":"\\G", "while":"^", "contentName":"inner",
+          "patterns":[{"match":"\\w+", "name":"word"}]}]
+      }]
+    }"""
+    )
+    let opened = tested.tokenizeLine("x")
+    check opened.completedRuleStack.hasActiveScope("inner")
+    let continued = tested.tokenizeLine("hello", opened.completedRuleStack)
+    check continued.tokens.anyIt("inner" in it.scopes and "word" in it.scopes)
+
   test "scans a synthetic newline without emitting it":
     let tested = grammar(
       """
@@ -366,6 +610,62 @@ suite "matter engine":
     check second.tokens[0].scopes == @["source.test"]
     check anchored.tokens.anyIt("keyword.anchored" in it.scopes)
 
+  test "matches a mid-line G alternative beside a line anchor":
+    let tested = grammar(
+      """{
+      "scopeName":"source.test", "patterns":[{
+        "begin":"^>", "end":"$", "patterns":[
+          {"match":"(^|\\G)y", "name":"anchored.word"}
+        ]
+      }]
+    }"""
+    )
+    check tested.tokenizeLine(">y").tokens.anyIt("anchored.word" in it.scopes)
+
+  test "preserves an enclosing while anchor when an inner while fails":
+    let tested = grammar(
+      """{
+      "scopeName":"source.test", "patterns":[{
+        "begin":"^>", "while":"^>", "name":"outer", "patterns":[
+          {"begin":"\\Gx", "while":"\\Gx", "name":"inner"},
+          {"match":"\\Gy", "name":"after.inner"}
+        ]
+      }]
+    }"""
+    )
+    let first = tested.tokenizeLine(">x")
+    check first.completedRuleStack.depth == 3
+    let second = tested.tokenizeLine(">y", first.completedRuleStack)
+    check second.tokens[^1].scopes == @["source.test", "outer", "after.inner"]
+    check second.completedRuleStack.depth == 2
+    check tested.tokenizeLine("plain", second.completedRuleStack).completedRuleStack.depth ==
+      1
+
+  test "does not continue an empty-line while after the synthetic newline":
+    let tested = grammar(
+      """{
+      "scopeName":"source.test", "patterns":[{
+        "begin":"^start$", "while":"^$", "name":"blank.continuation"
+      }]
+    }"""
+    )
+    let first = tested.tokenizeLine("start")
+    let second = tested.tokenizeLine("x", first.completedRuleStack)
+    check second.tokens[0].scopes == @["source.test"]
+    check second.completedRuleStack.depth == 1
+
+  test "emits lookahead captures beyond the whole match without overlapping tokens":
+    let tested = grammar(
+      """{
+      "scopeName":"source.test", "patterns":[{
+        "match":"```(?=(css))", "captures":{"1":{"name":"fenced.language"}}
+      }]
+    }"""
+    )
+    let parsed = tested.tokenizeLine("```css")
+    check parsed.tokens.mapIt((it.startIndex, it.endIndex, it.scopes[^1])) ==
+      @[(0, 3, "source.test"), (3, 6, "fenced.language")]
+
   test "keeps unanchored alternatives and literal escaped anchors":
     let tested = grammar(
       """
@@ -389,6 +689,19 @@ suite "matter engine":
     )
     let result = tokenizeLine(tested, "<")
     check result.ruleStack.depth == 2
+
+  test "preserves line anchors when disabling G in a compiled end pattern":
+    let tested = grammar(
+      """{
+      "scopeName":"source.test", "patterns":[{
+        "begin":"<", "end":"^$|\\Gx", "name":"meta.open"
+      }]
+    }"""
+    )
+    let first = tested.tokenizeLine("<")
+    let second = tested.tokenizeLine("y", first.completedRuleStack)
+    check second.completedRuleStack.depth == 2
+    check second.tokens[0].scopes == @["source.test", "meta.open"]
 
   test "carries a begin at synthetic eol into while G matching":
     let tested = grammar(

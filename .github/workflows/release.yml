@@ -89,4 +89,8 @@ jobs:
         shell: bash
         run: |
           mapfile -t archives < "$RUNNER_TEMP/grammar-archives.txt"
-          gh release create "$GITHUB_REF_NAME" "${archives[@]}" --verify-tag --generate-notes
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${archives[@]}" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "${archives[@]}" --verify-tag --generate-notes
+          fi

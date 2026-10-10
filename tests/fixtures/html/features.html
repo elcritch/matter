@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Résumé &amp; CSS</title>
+  <style>
+    :root { --accent: #ff00ff; }
+    .card:hover { color: var(--accent); padding: 1e+01px; }
+    @media (width > 40em) { .card { display: grid; } }
+  </style>
+  <script type="text/javascript">
+    const label = "hello";
+    function greet(name) { return label + name; }
+    const matcher = /[a-z]+/gi;
+  </script>
+</head>
+<body class="app" data-state='ready' hidden>
+  <!-- comment with <b>markup</b> and &amp; -->
+  <my-widget title="café &quot;hello&quot;" count=12 disabled>
+    <a href="https://example.com/?a=1&amp;b=2">Link &copy; &#123; &#x7B;</a>
+    <input type="checkbox" checked />
+    <svg viewBox="0 0 20 20">
+      <path d="M0 0 L20 20" fill="red"/>
+    </svg>
+    <math><mi>x</mi><mo>+</mo><mn>1</mn></math>
+    <![CDATA[raw <content> & text]]>
+  </my-widget>
+</body>
+</html>

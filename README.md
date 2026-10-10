@@ -123,7 +123,8 @@ catalog JSON is embedded with `staticRead` and parsed from that embedded data,
 so selecting a URL performs no runtime metadata file or network I/O. The
 release workflow runs the test suite and offline archive verification before it
 creates a `v*` GitHub Release and uploads every
-`data/grammars/*.zip` asset.
+`data/grammars/*.zip` asset. If the release already exists, the workflow uploads
+or replaces its grammar archives, so publishing can resume after a partial run.
 
 To refresh pinned source files after intentionally editing
 `tools/grammar_manifest.json`, use Python 3 and `nph` (network access required).
@@ -300,3 +301,47 @@ Compiled rules share an owned graph with non-owning recursive edges, so dropping
 a grammar releases its rules under ARC as well as ORC. Saved rule stacks and
 stack diffs retain the graph until they are released; callers can keep them
 after releasing the original grammar.
+
+## CSS, HTML, and Markdown compatibility
+
+The catalog exports `cssGrammar`, `htmlGrammar`, `htmlBasicGrammar`, and their
+`vscodeCssPackage` and `vscodeHtmlPackage` entries. Loading HTML or Markdown
+with `loadGrammarPackage` automatically registers the bundled CSS and JavaScript
+grammars for embedded highlighting. Other optional languages are reported through
+`unresolvedIncludes`; register additional grammars before loading the host.
+
+`Token.scopes` exposes complete scope paths, including Markdown headings, emphasis,
+strikethrough, links, images, lists, quotes, tables, punctuation, and fenced-code
+language names. See the [Markdown scope guide](tests/fixtures/markdown/README.md)
+for selectors and examples. The [HTML scope guide](tests/fixtures/html/README.md)
+covers tags, attributes, entities, punctuation, embedded languages, and known
+upstream grammar limitations. Binary tokens export bold, italic, underline, and
+strikethrough through `getFontStyle` and the `fontStyle*` constants.
+
+The checked-in [CSS fixtures](tests/fixtures/css/README.md),
+[HTML fixtures](tests/fixtures/html/README.md), and
+[Markdown fixtures](tests/fixtures/markdown/README.md) include unchanged Merenda
+examples. `tools/bench_css.nim`, `tools/bench_html.nim`, and
+`tools/bench_markdown.nim` report compilation,
+document throughput, interrupted lines, token checksums, and the slowest lines.
+Recorded measurements and profiling findings are available for
+[CSS](tests/fixtures/css/BENCHMARK.md),
+[HTML](tests/fixtures/html/BENCHMARK.md), and
+[Markdown](tests/fixtures/markdown/BENCHMARK.md).
+The [engine comparison](tools/BENCHMARK.md) measures main, this branch, and
+VS Code TextMate on identical grammars and inputs, with output correctness checks.
+
+CSS, HTML, and Markdown tests compare every visible UTF-8 token range and scope
+path against pinned VS Code TextMate/Oniguruma reference snapshots. HTML coverage
+includes embedded languages, SVG, MathML, entities, and attributes. Markdown also
+checks scope boundaries after front matter, lists, and fences. Reni's native
+capture-group option preserves mixed ordinary/named capture numbering, including
+numeric references to duplicate names. Per-search anchor options avoid compiling
+separate regex variants. Matter currently depends on the named fork branch
+`elcritch/reni#feat/textmate-compat`; the native additions are proposed in
+[upstream Reni PR #84](https://github.com/fox0430/reni/pull/84). The remaining
+source adaptation handles TextMate's end-of-input and property-escape spellings.
+
+Check `stoppedEarly` when using a time limit. The fixtures now complete with the
+existing regex step limit, but an interrupted result still has partial tokens
+and cannot supply a reusable next-line state.
