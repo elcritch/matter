@@ -337,10 +337,13 @@ includes embedded languages, SVG, MathML, entities, and attributes. Markdown als
 checks scope boundaries after front matter, lists, and fences. Reni's native
 capture-group option preserves mixed ordinary/named capture numbering, including
 numeric references to duplicate names. Per-search anchor options avoid compiling
-separate regex variants. Matter currently depends on the named fork branch
-`elcritch/reni#feat/textmate-compat`; the native additions are proposed in
-[upstream Reni PR #84](https://github.com/fox0430/reni/pull/84). The remaining
-source adaptation handles TextMate's end-of-input and property-escape spellings.
+separate regex variants. Matter pins upstream
+[Reni `a4c6f39`](https://github.com/fox0430/reni/commit/a4c6f395a33754620e8522cae0e41f38e265a6de),
+including the native capture-group and per-search `\A`/`\G` controls merged in
+[Reni PR #84](https://github.com/fox0430/reni/pull/84) and the subsequent
+[absent-range anchor fix](https://github.com/fox0430/reni/pull/89).
+The remaining source adaptation handles TextMate's end-of-input and
+property-escape spellings.
 
 Check `stoppedEarly` when using a time limit. The fixtures now complete with the
 existing regex step limit, but an interrupted result still has partial tokens
