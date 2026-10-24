@@ -220,9 +220,9 @@ Each ZIP includes its source package license, manifest, and provenance.
 - Repository: https://github.com/aryairani/tofu-plan-highlight/tree/0edf2419e1323bd96db23712a960d2990dd3a323
 - SHA-256: `346b967a5f388d48855a4b802ee432bb25995941b1fc282d193177f648778764`
 
-## matter.nif 1.0.0
+## matter.nif 1.1.0
 
 - License: MIT (https://github.com/elcritch/matter/blob/main/grammars/nif/LICENSE)
 - Source: grammars/nif
 - Repository: https://github.com/elcritch/matter
-- SHA-256: `1e6fab6c48c0433e41f7cf7a05cb170aaf6482e01156660f8e4c61a0cb2635d8`
+- SHA-256: `5769b2e902fcc3e2473a75cc41fb9037ccca8138bbc1720d77cfa15cbb63295a`

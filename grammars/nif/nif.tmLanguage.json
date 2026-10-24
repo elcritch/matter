@@ -5,10 +5,13 @@
     "nif"
   ],
   "firstLineMatch": "^\\(\\.nif[0-9]+\\)",
-  "comment": "Core NIF 2027 syntax, with NIF 2026 prefix annotations selected by (.nif26). Specification: https://github.com/nim-lang/nifspec/blob/c24fe94ad485a4eb3f5dfc91d8e4470ca0ea866f/doc/nif-spec.md",
+  "comment": "Core NIF 2027 syntax, with NIF 2026 prefix annotations selected by (.nif26). Specification: https://github.com/nim-lang/nifspec/blob/a31513c64471aba730f3e56429196767aeabab26/doc/nif-spec.md",
   "patterns": [
     {
       "include": "#legacy-document"
+    },
+    {
+      "include": "#line-document"
     },
     {
       "include": "#nodes"
@@ -150,7 +153,8 @@
         {
           "include": "#escape"
         }
-      ]
+      ],
+      "comment": "Quoted #, :, and ; are string content. Only a hash after the closing quote begins a suffix comment."
     },
     "character": {
       "name": "string.quoted.single.nif",
@@ -307,15 +311,15 @@
       "patterns": [
         {
           "name": "constant.numeric.float.nif",
-          "match": "-?[0-9]+(?:\\.[0-9]+(?:E[+-]?[0-9]+)?|E[+-]?[0-9]+)(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9])"
+          "match": "(?<![A-Za-z_0-9.+\\\\-]|[^\\x00-\\x7F])-?[0-9](?:_?[0-9])*(?:\\.[0-9](?:_?[0-9])*(?:E[+-]?[0-9](?:_?[0-9])*)?|E[+-]?[0-9](?:_?[0-9])*)(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9_])"
         },
         {
           "name": "constant.numeric.unsigned.nif",
-          "match": "-?[0-9]+u(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9])"
+          "match": "(?<![A-Za-z_0-9.+\\\\-]|[^\\x00-\\x7F])-?(?:(?:0x[0-9A-Fa-f](?:_?[0-9A-Fa-f])*|0o[0-7](?:_?[0-7])*|0b[01](?:_?[01])*)|[0-9](?:_?[0-9])*)u(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9_])"
         },
         {
           "name": "constant.numeric.integer.nif",
-          "match": "-?[0-9]+(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9])"
+          "match": "(?<![A-Za-z_0-9.+\\\\-]|[^\\x00-\\x7F])-?(?:(?:0x[0-9A-Fa-f](?:_?[0-9A-Fa-f])*|0o[0-7](?:_?[0-7])*|0b[01](?:_?[01])*)|[0-9](?:_?[0-9])*)(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9_])"
         }
       ]
     },
@@ -390,6 +394,138 @@
           "match": "[+-][0-9]+(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9])"
         }
       ]
+    },
+    "line-document": {
+      "comment": "A bare top-level tag selects the optional command/log syntax for following lines.",
+      "name": "meta.syntax.line-based.nif",
+      "begin": "^(?=[ \\t]*(?:[A-Za-z_]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))(?:[A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))*(?=[ \\t@~#]|$))",
+      "end": "(?!)",
+      "patterns": [
+        {
+          "include": "#line-node"
+        },
+        {
+          "include": "#nodes-line"
+        }
+      ]
+    },
+    "line-node": {
+      "name": "meta.node.line-based.nif",
+      "begin": "^[ \\t]*((?:[A-Za-z_]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))(?:[A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))*)",
+      "end": "$",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.tag.nif",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        }
+      },
+      "patterns": [
+        {
+          "include": "#nodes-line"
+        }
+      ]
+    },
+    "nodes-line": {
+      "patterns": [
+        {
+          "include": "#location"
+        },
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#directive"
+        },
+        {
+          "include": "#node-line"
+        },
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#character"
+        },
+        {
+          "include": "#numbers-line"
+        },
+        {
+          "include": "#auto-string"
+        },
+        {
+          "include": "#definition"
+        },
+        {
+          "include": "#symbol"
+        },
+        {
+          "include": "#identifier"
+        },
+        {
+          "include": "#empty"
+        }
+      ]
+    },
+    "node-line": {
+      "name": "meta.node.nif",
+      "begin": "(\\()[ \\t]*((?:[A-Za-z_]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))(?:[A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))*)",
+      "end": "\\)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.section.parens.begin.nif"
+        },
+        "2": {
+          "name": "entity.name.tag.nif",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.parens.end.nif"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#nodes-line"
+        }
+      ]
+    },
+    "numbers-line": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.nif",
+          "match": "(?<![A-Za-z_0-9.+\\\\-]|[^\\x00-\\x7F])-?[0-9](?:_?[0-9])*(?:\\.[0-9](?:_?[0-9])*(?:E[+-]?[0-9](?:_?[0-9])*)?|E[+-]?[0-9](?:_?[0-9])*)(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9_]|[-/:])"
+        },
+        {
+          "name": "constant.numeric.unsigned.nif",
+          "match": "(?<![A-Za-z_0-9.+\\\\-]|[^\\x00-\\x7F])-?(?:(?:0x[0-9A-Fa-f](?:_?[0-9A-Fa-f])*|0o[0-7](?:_?[0-7])*|0b[01](?:_?[01])*)|[0-9](?:_?[0-9])*)u(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9_]|[-/:])"
+        },
+        {
+          "name": "constant.numeric.integer.nif",
+          "match": "(?<![A-Za-z_0-9.+\\\\-]|[^\\x00-\\x7F])-?(?:(?:0x[0-9A-Fa-f](?:_?[0-9A-Fa-f])*|0o[0-7](?:_?[0-7])*|0b[01](?:_?[01])*)|[0-9](?:_?[0-9])*)(?![A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\|\\.[0-9_]|[-/:])"
+        }
+      ]
+    },
+    "auto-string": {
+      "comment": "Number/identifier/symbol atoms continued by -, /, or : are strings in line-based modules.",
+      "match": "(?<![A-Za-z_0-9.\\\\-]|[^\\x00-\\x7F])(?:(?:-?(?:[0-9](?:_?[0-9])*(?:\\.[0-9](?:_?[0-9])*(?:E[+-]?[0-9](?:_?[0-9])*)?|E[+-]?[0-9](?:_?[0-9])*)|(?:(?:0x[0-9A-Fa-f](?:_?[0-9A-Fa-f])*|0o[0-7](?:_?[0-7])*|0b[01](?:_?[01])*)|[0-9](?:_?[0-9])*)u?)|(?:[A-Za-z_]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))(?:[A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))*(?:\\.(?:(?:[A-Za-z_0-9]|[^\\x00-\\x7F]|\\\\(?:[0-9A-F]{2}|[ntr|^]))|\\.)*)?)[-/:]|/|-(?=[-/]))(?:\\\\(?:[0-9A-F]{2}|[ntr|^])|[^\\s()@~#\\\\])*",
+      "captures": {
+        "0": {
+          "name": "string.unquoted.nif",
+          "patterns": [
+            {
+              "include": "#escape"
+            }
+          ]
+        }
+      }
     }
   }
 }

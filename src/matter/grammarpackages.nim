@@ -576,7 +576,7 @@ const
   nifPackage* = SourcePackage(
     namespace: "matter",
     name: "nif",
-    version: "1.0.0",
+    version: "1.1.0",
     targetPlatform: "",
     sourceKind: "local",
     sourceArchiveSha256: "",
@@ -585,8 +585,8 @@ const
     repositoryUrl: "https://github.com/elcritch/matter",
     licenseUrl: "https://github.com/elcritch/matter/blob/main/grammars/nif/LICENSE",
     downloadUrl: "",
-    dataArchivePath: "data/grammars/matter-nif-1.0.0.zip",
-    archiveSha256: "1e6fab6c48c0433e41f7cf7a05cb170aaf6482e01156660f8e4c61a0cb2635d8",
+    dataArchivePath: "data/grammars/matter-nif-1.1.0.zip",
+    archiveSha256: "5769b2e902fcc3e2473a75cc41fb9037ccca8138bbc1720d77cfa15cbb63295a",
   )
 
   knownPackages* = [
@@ -1167,7 +1167,7 @@ const
     grammarPath: "./nif.tmLanguage.json",
     archiveMember: "grammar/nif.tmLanguage.json",
     packageKey: "matter.nif",
-    dataArchivePath: "data/grammars/matter-nif-1.0.0.zip",
+    dataArchivePath: "data/grammars/matter-nif-1.1.0.zip",
     isPrimary: true,
   )
 
