@@ -1680,9 +1680,9 @@
         "grammar/nif.tmLanguage.json",
         "package.json"
       ],
-      "archiveSha256": "1e6fab6c48c0433e41f7cf7a05cb170aaf6482e01156660f8e4c61a0cb2635d8",
+      "archiveSha256": "5769b2e902fcc3e2473a75cc41fb9037ccca8138bbc1720d77cfa15cbb63295a",
       "constName": "nifPackage",
-      "dataArchivePath": "data/grammars/matter-nif-1.0.0.zip",
+      "dataArchivePath": "data/grammars/matter-nif-1.1.0.zip",
       "downloadUrl": "",
       "grammars": [
         [
@@ -1708,14 +1708,14 @@
           "grammar/nif.tmLanguage.json": "grammars/nif/nif.tmLanguage.json"
         },
         "sourceKind": "local",
-        "specificationUrl": "https://github.com/nim-lang/nifspec/blob/c24fe94ad485a4eb3f5dfc91d8e4470ca0ea866f/doc/nif-spec.md",
-        "version": "1.0.0"
+        "specificationUrl": "https://github.com/nim-lang/nifspec/blob/a31513c64471aba730f3e56429196767aeabab26/doc/nif-spec.md",
+        "version": "1.1.0"
       },
       "repositoryUrl": "https://github.com/elcritch/matter",
       "sourceKind": "local",
       "sourceRoot": "grammars/nif",
-      "specificationUrl": "https://github.com/nim-lang/nifspec/blob/c24fe94ad485a4eb3f5dfc91d8e4470ca0ea866f/doc/nif-spec.md",
-      "version": "1.0.0"
+      "specificationUrl": "https://github.com/nim-lang/nifspec/blob/a31513c64471aba730f3e56429196767aeabab26/doc/nif-spec.md",
+      "version": "1.1.0"
     }
   ],
   "sourceArchiveSha256": {

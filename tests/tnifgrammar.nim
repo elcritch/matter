@@ -104,6 +104,60 @@ suite "NIF TextMate grammar":
       checkScope(parsed, line, "@5,3,foo.nim", "constant.other.location.nif")
       checkScope(parsed, line, "#why#", "comment.block.nif")
 
+  test "based integers and digit separators retain their complete numeric scopes":
+    let grammar = newNifGrammar()
+    for (literal, scope) in [
+      ("0xFF", "integer"),
+      ("0xff", "integer"),
+      ("-0xFF", "integer"),
+      ("0x00_82_9f_ff", "integer"),
+      ("0x1E3", "integer"),
+      ("0o377", "integer"),
+      ("0o3_77u", "unsigned"),
+      ("0b1111_1111", "integer"),
+      ("-0b1u", "unsigned"),
+      ("0xDEAD_BEEFu", "unsigned"),
+      ("1_000_000", "integer"),
+      ("1_000u", "unsigned"),
+      ("1_234.5_6E+0_2", "float"),
+      ("-1_0.5_0", "float"),
+      ("1E1_0", "float"),
+    ]:
+      let line = "(value " & literal & "@5#number#)"
+      let parsed = grammar.tokenizeLine(line)
+      checkScope(parsed, line, literal, "constant.numeric." & scope & ".nif")
+      checkScope(parsed, line, "@5", "constant.other.location.nif")
+      checkScope(parsed, line, "#number#", "comment.block.nif")
+
+  test "malformed numbers do not highlight partial numeric suffixes":
+    let grammar = newNifGrammar()
+    for literal in [
+      "0x", "0o8", "0b102", "0x_FF", "0xFFG", "0o178", "0XFF", "1_", "1__2", "1_.0",
+      "1._0", "1E_2", "1E+_2", "1_u", "1E", "1E+", "+12", "--12", "1.25e3",
+    ]:
+      let line = "(value " & literal & ")"
+      let parsed = grammar.tokenizeLine(line)
+      checkpoint literal
+      check not parsed.tokens.anyIt(it.scopes.anyIt(it.startsWith("constant.numeric.")))
+
+  test "quoted punctuation stays in strings while suffix comments remain separate":
+    let grammar = newNifGrammar()
+    for text in ["#language:hover", "2026-10-24T12:00:00Z", "key: value; # text"]:
+      let line = "(value \"" & text & "\"#comment#)"
+      let parsed = grammar.tokenizeLine(line)
+      checkScope(parsed, line, text, "string.quoted.double.nif")
+      checkScope(parsed, line, "#comment#", "comment.block.nif")
+      check parsed.tokens.countIt(
+        "punctuation.definition.comment.begin.nif" in it.scopes
+      ) == 1
+      check parsed.completedRuleStack.depth == 1
+    let opening = grammar.tokenizeLine("(value \"#literal: first;")
+    let closingLine = "#literal: second;\"#suffix#)"
+    let closing = grammar.tokenizeLine(closingLine, opening.completedRuleStack)
+    checkScope(closing, closingLine, "#literal: second;", "string.quoted.double.nif")
+    checkScope(closing, closingLine, "#suffix#", "comment.block.nif")
+    check closing.completedRuleStack.depth == 1
+
   test "recognizes hex and shortcut escapes in literals comments and identifiers":
     let grammar = newNifGrammar()
     for escape in [r"\00", r"\5C", r"\FF", r"\n", r"\t", r"\r", r"\|", r"\^"]:
@@ -167,6 +221,49 @@ suite "NIF TextMate grammar":
     checkScope(modern, modernLine, "42", "constant.numeric.integer.nif")
     check not modern.completedRuleStack.hasActiveScope("meta.version.26.nif")
 
+  test "line-based tags and auto strings preserve number and suffix scopes":
+    let grammar = newNifGrammar()
+    let header = grammar.tokenizeLine("(.nif27)")
+    let line = "copy src/main.nim dest/main.nim@1#target# 0xFF 1E-3"
+    let parsed = grammar.tokenizeLine(line, header.completedRuleStack)
+    checkScope(parsed, line, "copy", "entity.name.tag.nif")
+    checkScope(parsed, line, "src/main.nim", "string.unquoted.nif")
+    checkScope(parsed, line, "dest/main.nim", "string.unquoted.nif")
+    checkScope(parsed, line, "@1", "constant.other.location.nif")
+    checkScope(parsed, line, "#target#", "comment.block.nif")
+    checkScope(parsed, line, "0xFF", "constant.numeric.integer.nif")
+    checkScope(parsed, line, "1E-3", "constant.numeric.float.nif")
+    check parsed.completedRuleStack.hasActiveScope("meta.syntax.line-based.nif")
+    let nextLine = "warn 2024-08-12 key: -13 0o7"
+    let continued = grammar.tokenizeLine(nextLine, parsed.completedRuleStack)
+    checkScope(continued, nextLine, "warn", "entity.name.tag.nif")
+    checkScope(continued, nextLine, "2024-08-12", "string.unquoted.nif")
+    checkScope(continued, nextLine, "key:", "string.unquoted.nif")
+    checkScope(continued, nextLine, "-13", "constant.numeric.integer.nif")
+    checkScope(continued, nextLine, "0o7", "constant.numeric.integer.nif")
+    let pathsLine = "copy /usr/bin --color https://nim-lang.org -3 1.5E-3 x.1"
+    let paths = grammar.tokenizeLine(pathsLine, continued.completedRuleStack)
+    for path in ["/usr/bin", "--color", "https://nim-lang.org"]:
+      checkScope(paths, pathsLine, path, "string.unquoted.nif")
+    checkScope(paths, pathsLine, "-3", "constant.numeric.integer.nif")
+    checkScope(paths, pathsLine, "1.5E-3", "constant.numeric.float.nif")
+    checkScope(paths, pathsLine, "x.1", "variable.other.symbol.nif")
+
+  test "line-based style rules retain nested state across lines":
+    let grammar = newNifGrammar()
+    let firstLine = "style \"#name:hover\" (rule"
+    let first = grammar.tokenizeLine(firstLine)
+    checkScope(first, firstLine, "style", "entity.name.tag.nif")
+    checkScope(first, firstLine, "#name:hover", "string.quoted.double.nif")
+    let secondLine = "  (background (color 0x00_ff_00)))"
+    let second = grammar.tokenizeLine(secondLine, first.completedRuleStack)
+    checkScope(second, secondLine, "color", "entity.name.tag.nif")
+    checkScope(second, secondLine, "0x00_ff_00", "constant.numeric.integer.nif")
+    check second.completedRuleStack.hasActiveScope("meta.syntax.line-based.nif")
+    check not second.completedRuleStack.hasActiveScope("meta.node.line-based.nif")
+    let core = grammar.tokenizeLine("(value foo/bar)")
+    check not core.tokens.anyIt("string.unquoted.nif" in it.scopes)
+
   test "bundled Markdown dispatches nif fences to the grammar":
     let registry = newRegistry()
     discard registry.loadGrammarPackage(
@@ -174,9 +271,16 @@ suite "NIF TextMate grammar":
     )
     let markdown = registry.loadGrammar("text.html.markdown")
     let opening = markdown.tokenizeLine("```nif")
-    let line = "(call foo.0 42)"
+    let line = "(call foo.0 0x82_9f_ff \"#color: value;\")"
     let body = markdown.tokenizeLine(line, opening.completedRuleStack)
     checkScope(body, line, "call", "entity.name.tag.nif")
-    checkScope(body, line, "42", "constant.numeric.integer.nif")
+    checkScope(body, line, "0x82_9f_ff", "constant.numeric.integer.nif")
+    checkScope(body, line, "#color: value;", "string.quoted.double.nif")
     let closing = markdown.tokenizeLine("```", body.completedRuleStack)
     check not closing.completedRuleStack.hasActiveScope("markup.fenced_code")
+    let lineOpening = markdown.tokenizeLine("```nif")
+    let lineBody = markdown.tokenizeLine(
+      "style \"#name:hover\" (rule (color 0xfff))", lineOpening.completedRuleStack
+    )
+    let lineClosing = markdown.tokenizeLine("```", lineBody.completedRuleStack)
+    check not lineClosing.completedRuleStack.hasActiveScope("markup.fenced_code")
