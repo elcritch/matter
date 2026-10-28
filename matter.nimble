@@ -6,5 +6,5 @@ srcDir        = "src"
 
 requires "nim >= 2.0.0"
 
-requires "https://github.com/fox0430/reni#fbf085a977ef21989d452cfee00df15080a9f97f"
+requires "https://github.com/fox0430/reni >= 0.2.0"
 requires "https://github.com/guzba/zippy#cd562ba"
