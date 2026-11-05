@@ -24,6 +24,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "tools" / "grammar_manifest.json"
 DATA_DIR = ROOT / "data" / "grammars"
+CATALOG_PATH = ROOT / "src" / "matter" / "grammarcatalog.json"
 NIM_PATH = ROOT / "src" / "matter" / "grammarpackages.nim"
 ZIP_DATE = (1980, 1, 1, 0, 0, 0)
 ZIP_COMPRESSION = zipfile.ZIP_DEFLATED
@@ -428,7 +429,7 @@ def regenerate(manifest: dict) -> None:
         )
       provenance[package_id(package)] = write_archive(package, source, destination)
     catalog = write_catalog(manifest, provenance)
-    (DATA_DIR / "catalog.json").write_text(
+    CATALOG_PATH.write_text(
       json.dumps(catalog, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     write_notices(catalog)
@@ -436,9 +437,9 @@ def regenerate(manifest: dict) -> None:
     subprocess.run(["nph", str(NIM_PATH)], cwd=ROOT, check=True)
 
 
-def verify(manifest: dict, catalog_path: Path = DATA_DIR / "catalog.json") -> None:
+def verify(manifest: dict, catalog_path: Path = CATALOG_PATH) -> None:
   if not catalog_path.exists():
-    raise RuntimeError("missing data/grammars/catalog.json; run regenerateGrammars")
+    raise RuntimeError("missing src/matter/grammarcatalog.json; run regenerateGrammars")
   catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
   for key in (
       "archiveFormat", "moeSourceCommit", "moeMappings", "sourceVsixSha256",
@@ -497,7 +498,7 @@ def main() -> None:
   args = parser.parse_args()
   manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
   if args.verify:
-    verify(manifest, args.catalog or DATA_DIR / "catalog.json")
+    verify(manifest, args.catalog or CATALOG_PATH)
   elif args.catalog:
     parser.error("--catalog requires --verify")
   else:

@@ -32,7 +32,7 @@ const
   githubLatestReleaseDownloadBaseUrl* =
     "https://github.com/" & githubRepository & "/releases/latest/download"
   ## Base URL for assets on the latest GitHub release.
-  grammarCatalog = staticRead("../../data/grammars/catalog.json")
+  grammarCatalog = staticRead("grammarcatalog.json")
 
 func assetName(archivePath: string): string =
   archivePath.rsplit('/', maxsplit = 1)[^1]
