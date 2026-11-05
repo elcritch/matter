@@ -2,7 +2,7 @@ import std/[json, options, strutils, unittest]
 
 import matter
 
-const catalogContents = staticRead("../data/grammars/catalog.json")
+const catalogContents = staticRead("../src/matter/grammarcatalog.json")
 let catalog = parseJson(catalogContents)
 
 suite "grammar release asset metadata":

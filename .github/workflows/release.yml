@@ -62,7 +62,7 @@ jobs:
                   f"Release tag must be {expected_tag}, got {os.environ['GITHUB_REF_NAME']}."
               )
 
-          catalog = json.loads(Path("data/grammars/catalog.json").read_text(encoding="utf-8"))
+          catalog = json.loads(Path("src/matter/grammarcatalog.json").read_text(encoding="utf-8"))
           expected = [package["dataArchivePath"] for package in catalog["packages"]]
           if len(expected) != len(set(expected)):
               raise SystemExit("Grammar catalog contains duplicate archive paths.")

@@ -93,7 +93,7 @@ suite "grammar package catalog":
     defer:
       if fileExists(driftedCatalog):
         removeFile(driftedCatalog)
-    let original = readFile(root / "data/grammars/catalog.json")
+    let original = readFile(root / "src/matter/grammarcatalog.json")
     writeFile(
       driftedCatalog,
       original.replace("\"licenseId\": \"MIT\"", "\"licenseId\": \"Apache-2.0\""),

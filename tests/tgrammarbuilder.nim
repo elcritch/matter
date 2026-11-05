@@ -79,7 +79,7 @@ proc newFixture(): GrammarFixture =
     root: root,
     source: source,
     archive: root / "data/grammars/matter-example-1.0.0.zip",
-    catalog: root / "data/grammars/catalog.json",
+    catalog: root / "src/matter/grammarcatalog.json",
     formatterLog: formatterLog,
     environment: environment,
   )
